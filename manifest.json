@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "XING Message Generator",
+  "version": "1.2",
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
+  "host_permissions": [
+    "https://n8n.stolzberger.cloud/*",
+    "https://xingproxy-842321698577.europe-west1.run.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon1.png",
+    "48": "icon1.png",
+    "128": "icon1.png"
+  },
+  "action": {
+    "default_title": "Xing Scraper öffnen",
+    "default_icon": "icon1.png"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "content_scripts": [  
+    {
+      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*"],
+      "js": ["contentScript.js"]
+    }
+  ]
+}

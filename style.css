@@ -1,0 +1,368 @@
+/* style.css */
+body {
+  width: 100%;
+  height: 100vh;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #ffffff;
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+  color: #333;
+}
+
+header h2 {
+  text-align: center;
+  color: #026466;
+  margin: 0 0 16px 0;
+  font-size: 20px;
+}
+
+/* Karten-Look */
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e5e5; /* Ein feiner grauer Rand statt Schatten */
+  padding: 16px;
+  
+  margin-bottom: 16px;
+}
+
+/* Inputs */
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5f6368;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+textarea, input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+  background: #fcfcfc;
+  transition: all 0.5s;
+}
+
+textarea:focus, input:focus {
+  outline: none;
+  border-color: #026466;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(2, 100, 102, 0.1);
+}
+
+#userPrompt {
+  height: 120px;
+  resize: none;
+  margin-bottom: 12px;
+}
+
+#outputMessage {
+  height: 300px;
+  line-height: 1.5;
+  resize: vertical; /* Wichtig */
+}
+
+/* Button */
+#scrapeBtn {
+  width: 100%;
+  background-color: #026466;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+#scrapeBtn:hover {
+  background-color: #014f50;
+}
+
+#scrapeBtn:disabled {
+  background-color: #8faeb0;
+  cursor: not-allowed;
+}
+
+/* Kopier Button */
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.copy-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.result-group {
+  margin-bottom: 15px;
+}
+
+.hidden {
+  display: none;
+}
+
+#statusMessage {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-top: 10px;
+}
+
+/* Status Animation */
+.status-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: slideUpFade 0.5s ease-out;
+}
+
+.pulsing-text {
+  color: #026466;
+  font-weight: 600;
+  font-size: 14px;
+  animation: pulseOpacity 1.5s infinite ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes pulseOpacity {
+  0% { opacity: 0.6; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.6; transform: scale(0.98); }
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dots::after {
+  content: '';
+  animation: dotAnimation 1.5s steps(4, end) infinite;
+}
+
+@keyframes dotAnimation {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+
+
+/* --- Styling für Quick Settings (NEU) --- */
+/* Globale Variablen beibehalten */
+/* Globale Variablen (für Konsistenz im Design) */
+:root {
+    --accent-color: #026466; /* Deine Akzentfarbe (Grün/Türkis) */
+    --border-color: #e0e3e7; /* Heller Rand */
+    --text-main: #333;       /* Haupt-Textfarbe */
+    --text-label: #6c757d;   /* Farbe für kleine Labels */
+    --radius-large: 8px;     /* Deutlich runde Ecken */
+    --transition-speed: 0.3s; /* Einheitliche Animationsgeschwindigkeit */
+}
+
+/* --- 1. Container und Label Styling --- */
+.quick-settings {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 25px; 
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color); 
+}
+
+.setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; 
+}
+
+.setting-group label {
+    font-size: 11px; 
+    color: var(--text-label); 
+    font-weight: 400;
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+    margin-bottom: 0;
+}
+
+/* --- 2. Dropdown (Select) Styling (Kern des Looks) --- */
+#tonalität, #msgLength {
+    padding: 8px 12px;
+    min-width: 150px;
+    height: 38px;
+    
+    /* Runde Ecken */
+    border-radius: var(--radius-large); 
+    border: 1px solid var(--border-color);
+    background-color: white; 
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 500;
+    cursor: pointer;
+    
+    /* Transparente Animation: Startet leicht transparent */
+    opacity: 0.9; 
+    transition: opacity var(--transition-speed), 
+                border-color var(--transition-speed), 
+                box-shadow var(--transition-speed);
+    
+    /* Entfernt den Standard-Pfeil (notwendig für eigenes Styling) */
+    -webkit-appearance: none; 
+    -moz-appearance: none;
+    appearance: none;
+    
+    /* Fügt eigenen Pfeil (SVG-Hintergrundbild) hinzu */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%236C757D"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px; 
+}
+
+/* Hover-Effekt: Wird beim Überfahren vollständig sichtbar */
+#tonalität:hover, #msgLength:hover {
+    opacity: 1; 
+    border-color: var(--accent-color);
+}
+
+/* Fokus-Zustand: Zeigt deutlichen Rand und Transparenz wird aufgehoben */
+#tonalität:focus, #msgLength:focus {
+    opacity: 1;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(2, 100, 102, 0.25); /* Subtiler Fokus-Ring */
+    outline: none;
+}
+
+/* Styling für die Optionen (Dropdown-Inhalt, kann nicht viel geändert werden) */
+#tonalität option, #msgLength option {
+    background-color: white;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+
+/* --- CSS für die Animation (Muss ZUSÄTZLICH zum vorherigen CSS verwendet werden) --- */
+
+.custom-dropdown {
+    position: relative; /* Wichtig, damit die Optionsliste darüber liegt */
+}
+
+.dropdown-options {
+    position: absolute;
+    top: 100%; /* Beginnt direkt unter dem Button */
+    left: 0;
+    z-index: 100;
+    
+    /* --- ANIMATION HIER START --- */
+    max-height: 0; /* Standardmäßig versteckt */
+    opacity: 0;
+    visibility: hidden;
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+    /* --- ANIMATION HIER ENDE --- */
+    
+    /* Styling der Liste */
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-large);
+    overflow: hidden; /* Verbirgt Inhalt, während max-height 0 ist */
+    margin: 4px 0 0 0;
+    padding: 0;
+    list-style: none;
+    min-width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Zustand, wenn das Dropdown geöffnet wird (durch JavaScript hinzugefügt) */
+.custom-dropdown.is-open .dropdown-options {
+    max-height: 300px; /* Muss hoch genug für alle Optionen sein */
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Styling des sichtbaren Buttons (übernimmt das Select-Feld Styling) */
+.dropdown-display {
+    padding: 8px 12px;
+    height: 38px;
+    border-radius: var(--radius-large);
+    border: 1px solid var(--border-color);
+    /* Restliches Styling wie #tonalität */
+    cursor: pointer;
+}
+
+
+
+/* Styling für den "Anpassen"-Button */
+.secondary-btn {
+  width: 100%;
+  background-color: #ffffff;
+  color: var(--primary-color);      /* Text ist grün */
+  border: 1px solid var(--primary-color); /* Rand ist grün */
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.secondary-btn:hover {
+  background-color: #e6f7f8; /* Ganz helles Türkis beim Drüberfahren */
+  border-color: var(--primary-hover);
+}
+
+.secondary-btn:active {
+  transform: scale(0.98); /* Kleiner Klick-Effekt */
+}
+
+/* Spinner Farbe anpassen für den weißen Button (damit man ihn sieht) */
+.secondary-btn .spinner {
+  border: 3px solid rgba(2, 100, 102, 0.2);
+  border-top: 3px solid var(--primary-color);
+}
+
+
+
+.mein-logo {
+    width: 50px;   /* Erhöhe diesen Wert */
+    height: 50px;  /* Erhöhe diesen Wert */
+    object-fit: contain; /* Damit es nicht verzerrt wird */
+}

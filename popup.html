@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>XING Message Generator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h2>XING Message Generator✨</h2>
+  </header>
+
+  <div class="card">
+    <label for="userPrompt">Dein Wunsch an die KI (Optional):</label>
+    <textarea id="userPrompt"  rows="10" placeholder="z.B.: Erstelle eine Nachricht an den Kandidaten..."></textarea>
+
+
+<div class="quick-settings">
+
+    <div class="setting-group">
+      <label for="tonalität">Tonalität</label>
+      <select id="tonalität">
+        <option value="Sie-Form" selected>Sie-Form</option>
+        <option value="Du-Form">Du-Form</option>
+      </select>
+    </div>
+    
+    <div class="setting-group">
+        <label for="msgLength">Länge</label>
+        <select id="msgLength">
+            <option value="Kurz und knackig">Kurz & knackig</option>
+            <option value="Normal" selected>Normal (Standard)</option>
+            <option value="Sehr detailliert">Detailliert</option>
+        </select>
+    </div>
+
+</div>
+    
+    <button id="scrapeBtn">
+      <span class="btn-text">Nachricht erstellen 🚀</span>
+      <div class="spinner hidden"></div>
+    </button>
+  </div>
+  
+  <div id="resultContainer" class="hidden">
+    
+    <div class="result-group">
+      <div class="label-row">
+        <label>Betreff</label>
+        <button class="copy-btn" id="copySubject" title="Kopieren">📋</button>
+      </div>
+      <input type="text" id="outputSubject" readonly>
+    </div>
+
+    <div class="result-group">
+      <div class="label-row">
+        <label>Nachricht</label>
+        <button class="copy-btn" id="copyMessage" title="Kopieren">📋</button>
+      </div>
+      <textarea id="outputMessage" readonly></textarea>
+    </div>
+
+  </div>
+
+<div id="recreateContainer" class="action-row hidden" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+  
+  <p style="font-size: 11px; color: #666; margin-bottom: 8px; text-align: center;">
+    Nicht zufrieden? Ändere den Wunsch oben & klicke hier:
+  </p>
+
+  <button id="recreateBtn" class="secondary-btn">
+    <span class="btn-text">Nachricht anpassen 🔄</span>
+    <div class="spinner hidden"></div>
+  </button>
+
+</div>
+
+  
+
+  <div id="statusMessage"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
