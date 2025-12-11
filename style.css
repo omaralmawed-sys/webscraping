@@ -366,3 +366,30 @@ textarea:focus, input:focus {
     height: 50px;  /* Erhöhe diesen Wert */
     object-fit: contain; /* Damit es nicht verzerrt wird */
 }
+
+
+/* style.css */
+
+.main-btn {
+  background-color: #006565; /* Das ist das XING-Teal (dunkles Türkis) */
+  color: white;
+  width: 100%;
+  padding: 12px 15px;
+  border: none;
+  border-radius: 6px; /* Abgerundete Ecken */
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px; /* Abstand zwischen Icon und Text */
+  transition: background-color 0.2s ease;
+  margin-bottom: 10px; /* Abstand zum nächsten Button */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.main-btn:hover {
+  background-color: #004f4f; /* Etwas dunkler beim Drüberfahren */
+}
+
