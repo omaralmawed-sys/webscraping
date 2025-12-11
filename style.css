@@ -393,3 +393,43 @@ textarea:focus, input:focus {
   background-color: #004f4f; /* Etwas dunkler beim Drüberfahren */
 }
 
+
+
+/* style.css */
+
+.nav-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Abstand zwischen Pfeil und Text */
+  
+  background: transparent;
+  border: none;
+  
+  color: #6c757d; /* Modernes, weiches Grau */
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px; /* Runde Ecken beim Hover-Hintergrund */
+  transition: all 0.2s ease;
+  
+  /* Damit der Button schön links bündig mit der Karte sitzt */
+  margin-bottom: 5px;
+  margin-left: -5px; 
+}
+
+/* Der Hover-Effekt (Maus drüber) */
+.nav-back-btn:hover {
+  background-color: #f0f7f7; /* Ganz helles Türkis */
+  color: #026466; /* Deine Hauptfarbe */
+  transform: translateX(-4px); /* Bewegt sich 4px nach links ⬅️ */
+}
+
+/* Optional: Das Icon etwas stylen */
+.nav-back-btn svg {
+  fill: currentColor; /* Nimmt die Textfarbe an */
+  width: 18px;
+  height: 18px;
+}

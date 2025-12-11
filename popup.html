@@ -16,17 +16,54 @@
   <div id="view-menu" class="card">
     <p style="text-align:center; margin-bottom:20px; font-size: 18px; font-weight:bold ; color: #333;">Wähle ein Tool:</p>
 
-    <button id="navToGenerator" class="main-btn">
+    <button id="nav-to-generator" class="main-btn">
       Nachricht Generator ✉️
     </button>
 
-    <button id="navToBlank" class="main-btn">
+    <button id="nav-to-job-matching" class="main-btn">
        Xing Job Matching 🛠️
     </button>
   </div>
 
 
-  <div class="card">
+<div id="job-matching-container" class="hidden">
+    
+    <button id="backFromJobMatching" class="nav-back-btn">
+  <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+  Zurück zum Menü
+</button>
+
+    <div class="card">
+      <h3 style="margin-top:0; color:#026466;">Job Matching 🛠️</h3>
+      <p style="font-size:12px; color:#666; margin-bottom:15px;">
+        Gib die Job-ID ein, um das Profil mit der Stelle zu vergleichen.
+      </p>
+
+      <label for="job_id_input">Bitte Job-ID eingeben:</label>
+      <input type="text" id="job_id_input" placeholder="z.B. 123456" style="margin-bottom: 15px;">
+      
+      <button id="fetchJobMatchBtn" class="main-btn">
+        <span class="btn-text">Job Matching abrufen 🚀</span>
+        <div class="spinner hidden"></div>
+      </button>
+    </div>
+
+    <div id="matchResult" class="hidden card" style="border-left: 4px solid #026466;">
+        <label>Ergebnis:</label>
+        <p id="matchOutputText" style="font-size: 13px;"></p>
+    </div>
+
+  </div>
+
+
+  <div id="view-generator" class="hidden">
+
+   <button id="backFromNachrichtGenerator" class="nav-back-btn">
+  <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+  Zurück zum Menü
+</button>
+
+    <div class="card">
     <label for="userPrompt">Dein Wunsch an die KI (Optional):</label>
     <textarea id="userPrompt"  rows="10" placeholder="z.B.: Erstelle eine Nachricht an den Kandidaten..."></textarea>
 
@@ -91,6 +128,8 @@
 
 </div>
 
+  </div>
+  
   
 
   <div id="statusMessage"></div>
