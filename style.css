@@ -1,341 +1,144 @@
-/* style.css */
+/* style.css - FINALE VERSION */
+
+/* --- Globale Variablen --- */
+:root {
+  --accent-color: #006565; /* Dein XING-Teal */
+  --accent-hover: #004f4f; /* Dunkleres Teal für Hover */
+  --border-color: #e0e3e7; /* Heller Rand */
+  --text-main: #333;       /* Haupt-Textfarbe */
+  --text-label: #6c757d;   /* Farbe für kleine Labels */
+  --radius-large: 8px;     /* Deutlich runde Ecken */
+  --transition-speed: 0.2s; /* Einheitliche Animationsgeschwindigkeit */
+}
+
+/* --- Basis Layout --- */
 body {
   width: 100%;
-  height: 100vh;
+  height: 100vh; /* Volle Höhe */
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background-color: #ffffff;
   margin: 0;
   padding: 16px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--text-main);
+  overflow-x: hidden; /* Verhindert seitliches Scrollen */
 }
 
 header h2 {
   text-align: center;
-  color: #026466;
-  margin: 0 0 16px 0;
-  font-size: 20px;
+  color: var(--accent-color);
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  font-weight: 700;
 }
 
-/* Karten-Look */
+/* --- Karten-Look (Container) --- */
 .card {
   background: #ffffff;
   border-radius: 12px;
-  border: 1px solid #e5e5e5; /* Ein feiner grauer Rand statt Schatten */
+  border: 1px solid #e5e5e5;
   padding: 16px;
-  
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
-/* Inputs */
+/* --- Inputs & Textareas --- */
 label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: #5f6368;
+  color: var(--text-label);
   margin-bottom: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 textarea, input[type="text"] {
   width: 100%;
-  padding: 10px;
+  padding: 10px 12px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: var(--radius-large);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
   box-sizing: border-box;
   background: #fcfcfc;
-  transition: all 0.5s;
+  transition: all var(--transition-speed);
+  margin-bottom: 15px;
 }
 
 textarea:focus, input:focus {
   outline: none;
-  border-color: #026466;
+  border-color: var(--accent-color);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(2, 100, 102, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 101, 101, 0.15);
 }
 
 #userPrompt {
-  height: 120px;
+  height: 100px;
   resize: none;
-  margin-bottom: 12px;
 }
 
 #outputMessage {
-  height: 300px;
+  height: 250px;
   line-height: 1.5;
-  resize: vertical; /* Wichtig */
+  resize: vertical;
 }
 
-/* Button */
-#scrapeBtn {
-  width: 100%;
-  background-color: #026466;
+/* --- HAUPT BUTTON STYLE (Für ALLE grünen Buttons) --- */
+/* WICHTIG: Gilt für #scrapeBtn UND #fetchJobMatchBtn */
+.main-btn {
+  background-color: var(--accent-color);
   color: white;
+  width: 100%;
+  padding: 12px 15px;
   border: none;
-  padding: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: background-color 0.2s;
-}
-
-#scrapeBtn:hover {
-  background-color: #014f50;
-}
-
-#scrapeBtn:disabled {
-  background-color: #8faeb0;
-  cursor: not-allowed;
-}
-
-/* Kopier Button */
-.label-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.copy-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
+  border-radius: 6px;
   font-size: 16px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.copy-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.result-group {
-  margin-bottom: 15px;
-}
-
-.hidden {
-  display: none;
-}
-
-#statusMessage {
-  text-align: center;
-  font-size: 13px;
-  color: #666;
-  margin-top: 10px;
-}
-
-/* Status Animation */
-.status-container {
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  
+  /* Flexbox für Zentrierung von Text & Spinner */
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  animation: slideUpFade 0.5s ease-out;
-}
-
-.pulsing-text {
-  color: #026466;
-  font-weight: 600;
-  font-size: 14px;
-  animation: pulseOpacity 1.5s infinite ease-in-out;
-  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  
+  /* Animationen */
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  outline: none;
+  margin-bottom: 10px;
 }
 
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 3px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
+.main-btn:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px); /* Hebt sich leicht an */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
-
-@keyframes pulseOpacity {
-  0% { opacity: 0.6; transform: scale(0.98); }
-  50% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0.6; transform: scale(0.98); }
+.main-btn:active {
+  transform: translateY(0); /* Geht zurück beim Klicken */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-@keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.main-btn:disabled {
+  background-color: #8daaaa; /* Ausgegrautes Teal */
+  cursor: not-allowed;
+  transform: none; /* Keine Bewegung bei disabled */
+  box-shadow: none;
 }
 
-.dots::after {
-  content: '';
-  animation: dotAnimation 1.5s steps(4, end) infinite;
-}
-
-@keyframes dotAnimation {
-  0%, 20% { content: ''; }
-  40% { content: '.'; }
-  60% { content: '..'; }
-  80%, 100% { content: '...'; }
-}
-
-
-/* --- Styling für Quick Settings (NEU) --- */
-/* Globale Variablen beibehalten */
-/* Globale Variablen (für Konsistenz im Design) */
-:root {
-    --accent-color: #026466; /* Deine Akzentfarbe (Grün/Türkis) */
-    --border-color: #e0e3e7; /* Heller Rand */
-    --text-main: #333;       /* Haupt-Textfarbe */
-    --text-label: #6c757d;   /* Farbe für kleine Labels */
-    --radius-large: 8px;     /* Deutlich runde Ecken */
-    --transition-speed: 0.3s; /* Einheitliche Animationsgeschwindigkeit */
-}
-
-/* --- 1. Container und Label Styling --- */
-.quick-settings {
-    display: flex;
-    justify-content: space-between; 
-    align-items: center; 
-    margin-bottom: 25px; 
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color); 
-}
-
-.setting-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px; 
-}
-
-.setting-group label {
-    font-size: 11px; 
-    color: var(--text-label); 
-    font-weight: 400;
-    text-transform: uppercase; 
-    letter-spacing: 0.5px;
-    margin-bottom: 0;
-}
-
-/* --- 2. Dropdown (Select) Styling (Kern des Looks) --- */
-#tonalität, #msgLength {
-    padding: 8px 12px;
-    min-width: 150px;
-    height: 38px;
-    
-    /* Runde Ecken */
-    border-radius: var(--radius-large); 
-    border: 1px solid var(--border-color);
-    background-color: white; 
-    font-size: 14px;
-    color: var(--text-main);
-    font-weight: 500;
-    cursor: pointer;
-    
-    /* Transparente Animation: Startet leicht transparent */
-    opacity: 0.9; 
-    transition: opacity var(--transition-speed), 
-                border-color var(--transition-speed), 
-                box-shadow var(--transition-speed);
-    
-    /* Entfernt den Standard-Pfeil (notwendig für eigenes Styling) */
-    -webkit-appearance: none; 
-    -moz-appearance: none;
-    appearance: none;
-    
-    /* Fügt eigenen Pfeil (SVG-Hintergrundbild) hinzu */
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%236C757D"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>');
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 14px; 
-}
-
-/* Hover-Effekt: Wird beim Überfahren vollständig sichtbar */
-#tonalität:hover, #msgLength:hover {
-    opacity: 1; 
-    border-color: var(--accent-color);
-}
-
-/* Fokus-Zustand: Zeigt deutlichen Rand und Transparenz wird aufgehoben */
-#tonalität:focus, #msgLength:focus {
-    opacity: 1;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(2, 100, 102, 0.25); /* Subtiler Fokus-Ring */
-    outline: none;
-}
-
-/* Styling für die Optionen (Dropdown-Inhalt, kann nicht viel geändert werden) */
-#tonalität option, #msgLength option {
-    background-color: white;
-    color: var(--text-main);
-    font-weight: 500;
-}
-
-
-/* --- CSS für die Animation (Muss ZUSÄTZLICH zum vorherigen CSS verwendet werden) --- */
-
-.custom-dropdown {
-    position: relative; /* Wichtig, damit die Optionsliste darüber liegt */
-}
-
-.dropdown-options {
-    position: absolute;
-    top: 100%; /* Beginnt direkt unter dem Button */
-    left: 0;
-    z-index: 100;
-    
-    /* --- ANIMATION HIER START --- */
-    max-height: 0; /* Standardmäßig versteckt */
-    opacity: 0;
-    visibility: hidden;
-    transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
-    /* --- ANIMATION HIER ENDE --- */
-    
-    /* Styling der Liste */
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-large);
-    overflow: hidden; /* Verbirgt Inhalt, während max-height 0 ist */
-    margin: 4px 0 0 0;
-    padding: 0;
-    list-style: none;
-    min-width: 100%;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Zustand, wenn das Dropdown geöffnet wird (durch JavaScript hinzugefügt) */
-.custom-dropdown.is-open .dropdown-options {
-    max-height: 300px; /* Muss hoch genug für alle Optionen sein */
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Styling des sichtbaren Buttons (übernimmt das Select-Feld Styling) */
-.dropdown-display {
-    padding: 8px 12px;
-    height: 38px;
-    border-radius: var(--radius-large);
-    border: 1px solid var(--border-color);
-    /* Restliches Styling wie #tonalität */
-    cursor: pointer;
-}
-
-
-
-/* Styling für den "Anpassen"-Button */
+/* --- Sekundär Button (Weiß mit Rand) --- */
 .secondary-btn {
   width: 100%;
   background-color: #ffffff;
-  color: var(--primary-color);      /* Text ist grün */
-  border: 1px solid var(--primary-color); /* Rand ist grün */
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
   padding: 10px;
   font-size: 14px;
   font-weight: 600;
-  border-radius: var(--radius-round);
+  border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -345,91 +148,166 @@ textarea:focus, input:focus {
 }
 
 .secondary-btn:hover {
-  background-color: #e6f7f8; /* Ganz helles Türkis beim Drüberfahren */
-  border-color: var(--primary-hover);
+  background-color: #f0f7f7;
 }
 
 .secondary-btn:active {
-  transform: scale(0.98); /* Kleiner Klick-Effekt */
+  transform: scale(0.98);
 }
 
-/* Spinner Farbe anpassen für den weißen Button (damit man ihn sieht) */
+/* Spinner Farbe für weißen Button */
 .secondary-btn .spinner {
   border: 3px solid rgba(2, 100, 102, 0.2);
-  border-top: 3px solid var(--primary-color);
+  border-top: 3px solid var(--accent-color);
 }
 
-
-
-.mein-logo {
-    width: 50px;   /* Erhöhe diesen Wert */
-    height: 50px;  /* Erhöhe diesen Wert */
-    object-fit: contain; /* Damit es nicht verzerrt wird */
-}
-
-
-/* style.css */
-
-.main-btn {
-  background-color: #006565; /* Das ist das XING-Teal (dunkles Türkis) */
-  color: white;
-  width: 100%;
-  padding: 12px 15px;
-  border: none;
-  border-radius: 6px; /* Abgerundete Ecken */
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px; /* Abstand zwischen Icon und Text */
-  transition: background-color 0.2s ease;
-  margin-bottom: 10px; /* Abstand zum nächsten Button */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.main-btn:hover {
-  background-color: #004f4f; /* Etwas dunkler beim Drüberfahren */
-}
-
-
-
-/* style.css */
-
+/* --- Zurück Button (Pfeil) --- */
 .nav-back-btn {
   display: flex;
   align-items: center;
-  gap: 8px; /* Abstand zwischen Pfeil und Text */
-  
+  gap: 6px;
   background: transparent;
   border: none;
-  
-  color: #6c757d; /* Modernes, weiches Grau */
+  color: var(--text-label);
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
-  
   cursor: pointer;
   padding: 8px 12px;
-  border-radius: 8px; /* Runde Ecken beim Hover-Hintergrund */
+  border-radius: 8px;
   transition: all 0.2s ease;
-  
-  /* Damit der Button schön links bündig mit der Karte sitzt */
   margin-bottom: 5px;
-  margin-left: -5px; 
+  margin-left: -8px;
 }
 
-/* Der Hover-Effekt (Maus drüber) */
 .nav-back-btn:hover {
-  background-color: #f0f7f7; /* Ganz helles Türkis */
-  color: #026466; /* Deine Hauptfarbe */
-  transform: translateX(-4px); /* Bewegt sich 4px nach links ⬅️ */
+  background-color: #f0f7f7;
+  color: var(--accent-color);
+  transform: translateX(-3px);
 }
 
-/* Optional: Das Icon etwas stylen */
 .nav-back-btn svg {
-  fill: currentColor; /* Nimmt die Textfarbe an */
+  fill: currentColor;
   width: 18px;
   height: 18px;
+}
+
+/* --- Quick Settings (Dropdowns) --- */
+.quick-settings {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.setting-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+select {
+  width: 100%;
+  padding: 8px 10px;
+  height: 38px;
+  border-radius: var(--radius-large);
+  border: 1px solid var(--border-color);
+  background-color: white;
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  
+  /* Custom Pfeil */
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+select:focus {
+  border-color: var(--accent-color);
+}
+
+/* --- Ergebnisse & Copy Button --- */
+.result-group {
+  margin-bottom: 15px;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.copy-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* --- Loading Spinner Animation --- */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Status Nachrichten --- */
+#statusMessage {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-top: 15px;
+  min-height: 20px;
+}
+
+.status-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: slideUpFade 0.3s ease-out;
+}
+
+.pulsing-text {
+  color: var(--accent-color);
+  font-weight: 600;
+  animation: pulseOpacity 1.5s infinite;
+}
+
+@keyframes pulseOpacity {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Hilfsklassen --- */
+.hidden {
+  display: none !important;
 }

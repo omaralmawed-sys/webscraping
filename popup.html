@@ -29,9 +29,9 @@
 <div id="job-matching-container" class="hidden">
     
     <button id="backFromJobMatching" class="nav-back-btn">
-  <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-  Zurück zum Menü
-</button>
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Zurück zum Menü
+    </button>
 
     <div class="card">
       <h3 style="margin-top:0; color:#026466;">Job Matching 🛠️</h3>
@@ -48,12 +48,13 @@
       </button>
     </div>
 
-    <div id="matchResult" class="hidden card" style="border-left: 4px solid #026466;">
+    <div id="matchResult" class="hidden card" >
         <label>Ergebnis:</label>
-        <p id="matchOutputText" style="font-size: 13px;"></p>
+        <div id="matchOutputText" style="font-size: 13px; margin-top: 10px;"></div>
     </div>
 
-  </div>
+</div>
+
 
 
   <div id="view-generator" class="hidden">
@@ -89,7 +90,7 @@
 
 </div>
     
-    <button id="scrapeBtn">
+    <button id="scrapeBtn"  class="main-btn">
       <span class="btn-text">Nachricht erstellen 🚀</span>
       <div class="spinner hidden"></div>
     </button>

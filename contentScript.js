@@ -1,4 +1,10 @@
 // contentScript.js
+if(window.hasRun) {
+
+    throw new Error("Content Script already running");
+}
+window.hasRun = true;
+
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "scrape") {
