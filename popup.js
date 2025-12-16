@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const outputMessage = document.getElementById("outputMessage");
     const tonalitySelect = document.getElementById("tonalität");
     const lengthSelect = document.getElementById("msgLength");
+    const jobIdInputMessage = document.getElementById("job_id_input_message");
 
     // Job Matching Tool
     const job_id_input = document.getElementById("job_id_input");
@@ -145,7 +146,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- B. Nachricht Erstellen Button ---
     if (scrapeBtn) {
         scrapeBtn.addEventListener("click", async () => {
+
+         // 1. Erst Daten holen & Validieren (BEVOR Cooldown startet)
+            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+
+            // Wenn eine ID da ist, muss sie aus Zahlen bestehen
+            if (jobId && !/^\d+$/.test(jobId)) {
+                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+                return; // Abbruch, kein Cooldown gestartet!
+            }
             startCooldown();
+            
             statusDiv.innerText = "🔍 Lese Profil...";
             resultContainer.classList.add("hidden");
             if(recreateContainer) recreateContainer.classList.add("hidden");
@@ -157,16 +168,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await scrapeData();
                 cachedProfileData = response.data; // Speichern
 
+               
                 const payload = {
-                    mode: "create",
+                    mode: jobId ? "create_with_jobid" : "create",
                     text: response.data,
                     prompt: userPromptInput.value.trim(),
                     tonality: tonalitySelect.value,
                     length: lengthSelect.value,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    
                 };
+                if(jobId) payload.job_id = jobId;
 
-                sendPayloadToN8n(payload, "✨ KI generiert Nachricht...");
+                sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
+
+            
 
             } catch (err) {
                 showError(err.message);
