@@ -109,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnFetchJobMatchBtn) {
         btnFetchJobMatchBtn.addEventListener("click", async () => {
             const jobId = job_id_input.value.trim();
-            if (!jobId) { showError("Bitte Job-ID eingeben."); return; }
+            const isNumeric = Number(jobId);
+            if (!jobId || !isNumeric || !Number.isInteger(isNumeric)) { showError("Bitte Job-ID eingeben."); return; }
 
             startCooldown();
             
