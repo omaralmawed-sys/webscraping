@@ -110,8 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnFetchJobMatchBtn) {
         btnFetchJobMatchBtn.addEventListener("click", async () => {
             const jobId = job_id_input.value.trim();
-            const isNumeric = Number(jobId);
-            if (!jobId || !isNumeric || !Number.isInteger(isNumeric)) { showError("Bitte Job-ID eingeben."); return; }
+            
+            // Wenn eine ID da ist, muss sie aus Zahlen bestehen
+            if (jobId && !/^\d+$/.test(jobId)) {
+                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+                return; // Abbruch, kein Cooldown gestartet!
+            }
 
             startCooldown();
             
@@ -194,9 +198,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- C. Nachricht Anpassen (Rewrite) ---
     if (recreateBtn) {
         recreateBtn.addEventListener("click", () => {
+
+            // 1. Erst Daten holen & Validieren (BEVOR Cooldown startet)
+            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+
+            // Wenn eine ID da ist, muss sie aus Zahlen bestehen
+            if (jobId && !/^\d+$/.test(jobId)) {
+                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+                return; // Abbruch, kein Cooldown gestartet!
+            }
+
             startCooldown();
             const payload = {
-                mode: "rewrite",
+                mode: jobId ? "rewrite_with_jobid" : "rewrite",
                 text: cachedProfileData,
                 oldSubject: outputSubject.value,
                 oldMessage: outputMessage.value,
@@ -205,6 +219,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 length: lengthSelect.value,
                 timestamp: new Date().toISOString()
             };
+
+            if (jobId) {
+                    payload.job_id = jobId;
+                }
             sendPayloadToN8n(payload, "🎨 Verfeinere Nachricht...", true);
         });
     }
@@ -228,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(res => res.json())
         .then(data => {
             const output = Array.isArray(data) ? data[0] : data;
-            
+            if(output.error) throw new Error(output.error);
             // HTML Bauen
             let colorHex = "#666";
             let bgColor = "#f9f9f9";
