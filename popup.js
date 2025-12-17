@@ -87,32 +87,67 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
 
     // Diese Funktion versucht zu scrapen und repariert sich selbst (Injection), falls nötig
+   // ==========================================
+    // 2. SCRAPING & INJECTION LOGIK (KORRIGIERT)
+    // ==========================================
+
     async function scrapeData() {
         // 1. Aktiven Tab finden
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
-        const tabId = tabs[0].id;
+        
+        // KORREKTUR 1: Hier war der Tippfehler (tab vs tabs)
+        const tab = tabs[0]; 
+        const tabUrl = tab.url || "";
 
-        try {
-            // Versuch 1: Einfach nachfragen
-            return await sendMessageToTab(tabId, { action: "scrape" });
+        if(tabUrl.includes("xing.com")) {
+            console.log("🟢 XING Seite erkannt.");
+            return await handleXingScrape(tab.id); // tab.id nutzen
+        }
+        else if(tabUrl.includes("linkedin.com")) {
+            console.log("🔵 LinkedIn Seite erkannt.");
+            return await handleLinkedInScrape(tab.id); // tab.id nutzen
+        }
+        else {
+            throw new Error("Bitte öffne ein XING oder LinkedIn Profil.");
+        }
+    }
+
+    async function handleXingScrape(tabId) {
+         try {
+            return await sendMessageToTab(tabId, { action: "scrape" }); // XING hört auf "scrape"
         } catch (error) {
-            console.log("Script antwortet nicht. Injiziere...", error);
-            
-            // Versuch 2: Script injizieren ("Dolmetscher reinwerfen")
+            console.log("XING Script antwortet nicht. Injiziere...", error);
             try {
                 await chrome.scripting.executeScript({
                     target: { tabId: tabId },
                     files: ['contentScript.js']
                 });
-                
-                // Kurze Pause zum Laden des Scripts
                 await new Promise(r => setTimeout(r, 100));
-                
-                // Nochmal fragen
                 return await sendMessageToTab(tabId, { action: "scrape" });
             } catch (injectError) {
-                throw new Error("Fehler beim Lesen. Bitte Seite neu laden (F5).");
+                throw new Error("Fehler beim Lesen. Bitte Seite (Xing) neu laden (F5).");
+            }
+        }
+    }
+
+    async function handleLinkedInScrape(tabId){
+          try {
+            // KORREKTUR 2: Das Codewort muss "SCRAPE_LINKEDIN" sein (wie im content-linkedin.js definiert)
+            return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
+        } catch (error) {
+            console.log("LinkedIn Script antwortet nicht. Injiziere...", error);
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tabId },
+                    files: ['content-linkedin.js']
+                });
+                await new Promise(r => setTimeout(r, 100));
+                
+                // Auch hier das richtige Codewort nutzen!
+                return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
+            } catch (injectError) {
+                throw new Error("Fehler beim Lesen. Bitte Seite (LinkedIn) neu laden (F5).");
             }
         }
     }

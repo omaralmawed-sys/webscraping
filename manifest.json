@@ -24,7 +24,7 @@
   },
   "content_scripts": [  
     {
-      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*"],
+      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/*/*", "https://*.linkedin.com/*/*"],
       "js": ["contentScript.js"]
     }
   ]
