@@ -47,9 +47,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const copySubjectBtn = document.getElementById("copySubject");
     const copyMessageBtn = document.getElementById("copyMessage");
 
+    // LinkedIn elemente
+  // NEU: Manual / Auto Toggle Elemente
+    const radioAuto = document.getElementById("source-auto");
+    const radioManual = document.getElementById("source-manual");
+    const manualInputContainer = document.getElementById("manual-input-container");
+    const manualProfileData = document.getElementById("manualProfileData");
+
     // Initialisierung
     checkCooldown();
 
+
+    // ==========================================
+    // 1.5 TOGGLE LOGIK (NEU)
+    // ==========================================
+
+    function updateManualInputVisibility() {
+
+    if(radioManual && radioManual.checked ){
+        manualInputContainer.classList.remove("hidden");
+
+    }
+    else
+    {
+        manualInputContainer.classList.add("hidden");
+    }
+}
+
+    if(radioAuto){
+    radioAuto.addEventListener("change", updateManualInputVisibility);
+    }
+
+    if(radioManual){
+    radioManual.addEventListener("change", updateManualInputVisibility);
+    }
 
     // ==========================================
     // 2. SCRAPING & INJECTION LOGIK (WICHTIG!)
@@ -108,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- A. Job Matching Button ---
     if (btnFetchJobMatchBtn) {
+        
         btnFetchJobMatchBtn.addEventListener("click", async () => {
             const jobId = job_id_input.value.trim();
             
@@ -160,26 +192,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 return; // Abbruch, kein Cooldown gestartet!
             }
             startCooldown();
-            
+
+
+            // 2. UI Vorbereitung
             statusDiv.innerText = "🔍 Lese Profil...";
             resultContainer.classList.add("hidden");
             if(recreateContainer) recreateContainer.classList.add("hidden");
             const spinnerScrape = scrapeBtn.querySelector(".spinner");
             if(spinnerScrape) spinnerScrape.classList.remove("hidden");
 
-            try {
-                // Scrapen mit der neuen Injection-Logik
-                const response = await scrapeData();
-                cachedProfileData = response.data; // Speichern
+
+          try {
+            let finalProfileData;
+            
+            // 1. Daten aus Chrome laden
+            const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
+            
+            // 2. Das Objekt herausholen (oder ein leeres Objekt {}, falls nichts da ist)
+            const recruiterData = storageResult.cachedRecruiter || {};
+
+            // 3. Werte direkt auslesen (Passend zu deinem Screenshot)
+            const rName = recruiterData?.name || "";    // Holt "Omar Al Mawed"
+            const rEmail = recruiterData?.email || "";  // Holt "omar.almawed@..."
+
+            console.log("Geladener Recruiter:", rName, rEmail); // Zur Kontrolle
+
+            // ... hier geht dein Code weiter ...
+
+
+                // -----------------------------------------------------------
+                // ENTSCHEIDUNG: MANUELL (LinkedIn) ODER AUTO (XING)?
+                // -----------------------------------------------------------
+                if(radioManual && radioManual.checked){
+                    // === FALL 1: MANUELLER TEXT (LinkedIn) ===
+
+                    const rawText = manualProfileData.value.trim();
+                    if(!rawText){
+                        throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
+                    }
+
+                    // Wir verpacken den rohen Text in ein JSON-Objekt, damit die KI es versteht
+
+                    finalProfileData= rawText;
+
+                    // Wir cachen es sofort für den "Anpassen"-Button
+
+                    cachedProfileData=finalProfileData;
+
+
+                
+
+
+                }
+                else{
+                    // === FALL 2: AUTO (XING) ===
+                    // === FALL 2: AUTOMATISCH (XING Scraper) ===
+                    statusDiv.innerText = "🔍 Scrape XING...";
+                      // Scrapen mit der neuen Injection-Logik
+                    const response = await scrapeData();
+                    finalProfileData=response.data;
+                    cachedProfileData = response.data; // Speichern
+
+                }
+              
 
                
                 const payload = {
                     mode: jobId ? "create_with_jobid" : "create",
-                    text: response.data,
+                    text: finalProfileData,
                     prompt: userPromptInput.value.trim(),
                     tonality: tonalitySelect.value,
                     length: lengthSelect.value,
                     timestamp: new Date().toISOString(),
+                    name : rName,
+                    email : rEmail
+
+
                     
                 };
                 if(jobId) payload.job_id = jobId;
@@ -196,36 +284,92 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- C. Nachricht Anpassen (Rewrite) ---
-    if (recreateBtn) {
-        recreateBtn.addEventListener("click", () => {
+  // --- C. Nachricht Anpassen (Rewrite) ---
+if (recreateBtn) {
+    // 1. FEHLER BEHOBEN: "async" hinzugefügt
+    recreateBtn.addEventListener("click", async () => {
 
-            // 1. Erst Daten holen & Validieren (BEVOR Cooldown startet)
-            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+        // --- Validierung & Cooldown ---
+        const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+        if (jobId && !/^\d+$/.test(jobId)) {
+            showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+            return;
+        }
+        startCooldown();
 
-            // Wenn eine ID da ist, muss sie aus Zahlen bestehen
-            if (jobId && !/^\d+$/.test(jobId)) {
-                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-                return; // Abbruch, kein Cooldown gestartet!
+        // UI Updates
+        statusDiv.innerText = "✨ Verfeinere Nachricht...";
+        // (Optional: Spinner anzeigen, falls vorhanden)
+
+        try {
+            let finalProfileData;
+
+            // --- 1. Recruiter Daten holen ---
+            const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
+            
+            // 2. FEHLER BEHOBEN: Fallback {} hinzugefügt, falls leer
+            const recruiterData = storageResult.cachedRecruiter || {}; 
+            
+            // Daten sicher auslesen
+            const rName = recruiterData.name || "";
+            const rEmail = recruiterData.email || "";
+
+            console.log("Geladener Recruiter für Rewrite:", rName, rEmail);
+
+
+            // --- 2. Profiltext holen (Manuell vs Auto) ---
+            if (radioManual && radioManual.checked) {
+                // MANUELL
+                const LinkedInData = manualProfileData.value.trim();
+                if (!LinkedInData) {
+                    throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
+                }
+                finalProfileData = LinkedInData;
+                cachedProfileData = finalProfileData; // Global cachen
+            } else {
+                // AUTO (XING)
+                if (!cachedProfileData) {
+                    // Falls noch keine Daten da sind, kurz scrapen (Sicherheitsnetz)
+                    statusDiv.innerText = "🔍 Scrape XING (Daten fehlten)...";
+                    const response = await scrapeData();
+                    finalProfileData = response.data;
+                    cachedProfileData = response.data;
+                } else {
+                    finalProfileData = cachedProfileData;
+                }
             }
 
-            startCooldown();
+
+            // --- 3. Payload erstellen & Senden ---
+            // 3. FEHLER BEHOBEN: Payload ist jetzt HIER DRINNEN (im try-Block)
+            // damit 'rName' und 'rEmail' sichtbar sind.
+            
             const payload = {
                 mode: jobId ? "rewrite_with_jobid" : "rewrite",
-                text: cachedProfileData,
+                text: finalProfileData, // Besser die lokale Variable nutzen
                 oldSubject: outputSubject.value,
                 oldMessage: outputMessage.value,
                 prompt: userPromptInput.value.trim(),
                 tonality: tonalitySelect.value,
                 length: lengthSelect.value,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                // Hier übergeben wir die Daten, die wir oben geholt haben:
+                name: rName, 
+                email: rEmail
             };
 
             if (jobId) {
-                    payload.job_id = jobId;
-                }
+                payload.job_id = jobId;
+            }
+
             sendPayloadToN8n(payload, "🎨 Verfeinere Nachricht...", true);
-        });
-    }
+
+        } catch (err) {
+            console.error(err);
+            showError(err.message);
+        }
+    });
+}
 
 
     // ==========================================
@@ -320,6 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             clearTimeout(timeoutId);
             const output = Array.isArray(data) ? data[0] : data;
+            if(output.error) throw new Error(output.error);
             outputSubject.value = output.betreff || output.subject || "";
             outputMessage.value = output.message || output.nachricht || "";
             

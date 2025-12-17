@@ -65,8 +65,33 @@
 </button>
 
     <div class="card">
+
+     <div class="source-switch-container">
+        <label class="section-label">Daten-Quelle:</label>
+        <div class="switch-wrapper">
+          <input type="radio" id="source-auto" name="dataSource" value="auto" checked>
+          <label for="source-auto" class="switch-btn">🔄 XING (Auto)</label>
+          
+          <input type="radio" id="source-manual" name="dataSource" value="manual">
+          <label for="source-manual" class="switch-btn">📄 LinkedIn (Text)</label>
+        </div>
+      </div>
+
+
+
     <label for="userPrompt">Dein Wunsch an die KI (Optional):</label>
     <textarea id="userPrompt"  rows="10" placeholder="z.B.: Erstelle eine Nachricht an den Kandidaten..."></textarea>
+
+<div id="manual-input-container" class="hidden" style="margin-bottom: 15px;">
+        <label for="manualProfileData" style="font-size: 12px; font-weight: bold; color: #d9534f; display:block; margin-bottom:5px;">
+           LinkedIn Profiltext hier einfügen:
+        </label>
+        <textarea id="manualProfileData" rows="6" 
+                  placeholder="Kopiere den gesamten Text von LinkedIn (Strg+A, Strg+C) und füge ihn hier ein..."
+                  style="width: 100%; font-family: monospace; font-size: 11px; background: #fffcfc; border: 1px solid #e0e0e0;"></textarea>
+      </div>
+
+
 
 
 <div class="quick-settings">

@@ -311,3 +311,79 @@ select:focus {
 .hidden {
   display: none !important;
 }
+
+
+/* Container Abstand */
+.source-switch-container {
+  margin-bottom: 20px;
+}
+
+/* Label über dem Switch */
+.section-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Der Hintergrund-Wrapper (Track) */
+.switch-wrapper {
+  display: flex;
+  background-color: #f0f2f5; /* Sehr helles Grau */
+  padding: 4px;
+  border-radius: 12px;
+  position: relative;
+  border: 1px solid #e1e4e8;
+}
+
+/* Verstecke die Standard Radio-Buttons */
+.switch-wrapper input[type="radio"] {
+  display: none;
+}
+
+/* Das Aussehen der Buttons (Labels) */
+.switch-btn {
+  flex: 1; /* Beide Buttons gleich breit */
+  text-align: center;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5e6c84; /* Gedämpftes Grau für inaktive */
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  user-select: none; /* Verhindert Text-Markierung beim Klicken */
+  
+  /* Flexbox für Icon + Text Ausrichtung */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ... (Der obere Teil bleibt gleich) ... */
+
+/* Hover-Effekt für inaktive Buttons (bleibt dezent grau) */
+.switch-btn:hover {
+  background-color: rgba(2, 100, 102, 0.05); /* Ganz leichter Grünstich beim Hover */
+  color: #026466;
+}
+
+/* --- DER ACTIVE STATE (Wenn ausgewählt/gedrückt) --- */
+.switch-wrapper input[type="radio"]:checked + .switch-btn {
+  background-color: #026466;  /* ✨ HIER: Hintergrund wird Grün */
+  color: #ffffff;             /* ✨ HIER: Text wird Weiß */
+  font-weight: 700;
+  
+  /* Der Schatten wurde angepasst, damit er gut zum grünen Button passt */
+  box-shadow: 0 4px 12px rgba(2, 100, 102, 0.3); 
+  transform: scale(1.02);
+}
+
+/* Optional: Kleine Animation entfernen oder anpassen */
+.switch-wrapper input[type="radio"]:checked + .switch-btn::before {
+  display: none; /* Brauchen wir bei vollem Farb-Hintergrund oft nicht mehr */
+}
