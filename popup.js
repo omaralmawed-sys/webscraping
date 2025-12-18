@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await chrome.scripting.executeScript({
                     target: { tabId: tabId },
-                    files: ['contentScript.js']
+                    files: ['content-xing.js']
                 });
                 await new Promise(r => setTimeout(r, 100));
                 return await sendMessageToTab(tabId, { action: "scrape" });
@@ -469,6 +469,7 @@ if (recreateBtn) {
         if (isRequestRunning) return;
         isRequestRunning = true;
         statusDiv.innerText = loadingText;
+
 
 
 

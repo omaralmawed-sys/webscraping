@@ -27,7 +27,7 @@
   "content_scripts": [  
     {
       "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/*/*", "https://*.linkedin.com/*/*"],
-      "js": ["contentScript.js","content-linkedin.js"]
+      "js": ["content-xing.js","content-linkedin.js"]
     }
   ]
 }
