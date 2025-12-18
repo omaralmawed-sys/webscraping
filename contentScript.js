@@ -34,6 +34,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             job_preferences: {}
         };
 
+
+
+
+        
+
         // =========================================================
         // A. RECRUITER INFO (Intelligente Logik)
         // =========================================================

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- GLOBALE VARIABLEN ---
     let cachedProfileData = null; 
     let isRequestRunning = false;
+     let tabUrl;
 
     // ==========================================
     // 1. DOM ELEMENTE
@@ -62,25 +63,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1.5 TOGGLE LOGIK (NEU)
     // ==========================================
 
-    function updateManualInputVisibility() {
+//     function updateManualInputVisibility() {
 
-    if(radioManual && radioManual.checked ){
-        manualInputContainer.classList.remove("hidden");
+//     if(radioManual && radioManual.checked ){
+//         manualInputContainer.classList.remove("hidden");
 
-    }
-    else
-    {
-        manualInputContainer.classList.add("hidden");
-    }
-}
+//     }
+//     else
+//     {
+//         manualInputContainer.classList.add("hidden");
+//     }
+// }
 
-    if(radioAuto){
-    radioAuto.addEventListener("change", updateManualInputVisibility);
-    }
+//     if(radioAuto){
+//     radioAuto.addEventListener("change", updateManualInputVisibility);
+//     }
 
-    if(radioManual){
-    radioManual.addEventListener("change", updateManualInputVisibility);
-    }
+//     if(radioManual){
+//     radioManual.addEventListener("change", updateManualInputVisibility);
+//     }
 
     // ==========================================
     // 2. SCRAPING & INJECTION LOGIK (WICHTIG!)
@@ -91,22 +92,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. SCRAPING & INJECTION LOGIK (KORRIGIERT)
     // ==========================================
 
+    // ==========================================
+    // 2. SCRAPING & INJECTION LOGIK
+    // ==========================================
+
     async function scrapeData() {
         // 1. Aktiven Tab finden
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
         
-        // KORREKTUR 1: Hier war der Tippfehler (tab vs tabs)
         const tab = tabs[0]; 
-        const tabUrl = tab.url || "";
+         tabUrl = tab.url || "";
+
+        console.log("Aktive Tab URL:", tabUrl);
 
         if(tabUrl.includes("xing.com")) {
             console.log("🟢 XING Seite erkannt.");
-            return await handleXingScrape(tab.id); // tab.id nutzen
+            return await handleXingScrape(tab.id); 
         }
         else if(tabUrl.includes("linkedin.com")) {
             console.log("🔵 LinkedIn Seite erkannt.");
-            return await handleLinkedInScrape(tab.id); // tab.id nutzen
+            return await handleLinkedInScrape(tab.id); 
         }
         else {
             throw new Error("Bitte öffne ein XING oder LinkedIn Profil.");
@@ -115,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleXingScrape(tabId) {
          try {
-            return await sendMessageToTab(tabId, { action: "scrape" }); // XING hört auf "scrape"
+            return await sendMessageToTab(tabId, { action: "scrape" }); 
         } catch (error) {
             console.log("XING Script antwortet nicht. Injiziere...", error);
             try {
@@ -132,22 +138,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleLinkedInScrape(tabId){
-          try {
-            // KORREKTUR 2: Das Codewort muss "SCRAPE_LINKEDIN" sein (wie im content-linkedin.js definiert)
+        try {
+            console.log("1. Versuch: Sende Ping an LinkedIn Tab...");
             return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
         } catch (error) {
-            console.log("LinkedIn Script antwortet nicht. Injiziere...", error);
+            console.log("⚠️ Script antwortet nicht (Normal beim Start). Starte Injection...");
+            
             try {
+                // 1. Script injizieren
                 await chrome.scripting.executeScript({
                     target: { tabId: tabId },
                     files: ['content-linkedin.js']
                 });
-                await new Promise(r => setTimeout(r, 100));
                 
-                // Auch hier das richtige Codewort nutzen!
+                // 2. WICHTIG: 1 Sekunde warten!
+                console.log("⏳ Warte 2 Sekunde auf Script-Start...");
+                await new Promise(r => setTimeout(r, 1000)); 
+                
+                // 3. Nochmal fragen
+                console.log("2. Versuch: Sende Ping erneut...");
                 return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
+
             } catch (injectError) {
-                throw new Error("Fehler beim Lesen. Bitte Seite (LinkedIn) neu laden (F5).");
+                console.error("Injection Fehler:", injectError);
+                throw new Error("Verbindung fehlgeschlagen. Bitte lade den LinkedIn-Tab mit F5 neu.");
             }
         }
     }
@@ -158,11 +172,18 @@ document.addEventListener('DOMContentLoaded', () => {
             chrome.tabs.sendMessage(tabId, message, (response) => {
                 if (chrome.runtime.lastError) {
                     reject(chrome.runtime.lastError);
-                } else if (!response || !response.data) {
-                    reject(new Error("Keine Daten erhalten"));
-                } else {
-                    resolve(response);
+                    return;
                 }
+                if (!response) {
+                    reject(new Error("Keine Antwort erhalten"));
+                    return;
+                }
+                if (response.status === "error") {
+                    reject(new Error(response.message || "Unbekannter Fehler"));
+                    return;
+                }
+                // Erfolg
+                resolve(response);
             });
         });
     }
@@ -196,6 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Scrapen mit der neuen Injection-Logik
                 const response = await scrapeData();
+
+                console.log("Gescapte Daten für Job Matching:", response.data);
                 
                 // Erfolg! Senden an n8n
                 const payload = {
@@ -204,7 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     text: response.data,
                     timestamp: new Date().toISOString()
                 };
-                
+
+
+
+                if(tabUrl.includes("linkedin.com")) {
+                    payload.source ="linkedin";
+                }
+                else{
+                    payload.source ="xing";
+                }
                 sendJobMatchingRequest(payload, "🔍 Analysiere Matching...");
 
             } catch (err) {
@@ -238,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
           try {
-            let finalProfileData;
+             let finalProfileData;
             
             // 1. Daten aus Chrome laden
             const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
@@ -258,28 +289,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 // -----------------------------------------------------------
                 // ENTSCHEIDUNG: MANUELL (LinkedIn) ODER AUTO (XING)?
                 // -----------------------------------------------------------
-                if(radioManual && radioManual.checked){
-                    // === FALL 1: MANUELLER TEXT (LinkedIn) ===
+                // if(radioManual && radioManual.checked){
+                //     // === FALL 1: MANUELLER TEXT (LinkedIn) ===
 
-                    const rawText = manualProfileData.value.trim();
-                    if(!rawText){
-                        throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
-                    }
+                //     const rawText = manualProfileData.value.trim();
+                //     if(!rawText){
+                //         throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
+                //     }
 
-                    // Wir verpacken den rohen Text in ein JSON-Objekt, damit die KI es versteht
+                //     // Wir verpacken den rohen Text in ein JSON-Objekt, damit die KI es versteht
 
-                    finalProfileData= rawText;
+                //     finalProfileData= rawText;
 
-                    // Wir cachen es sofort für den "Anpassen"-Button
+                //     // Wir cachen es sofort für den "Anpassen"-Button
 
-                    cachedProfileData=finalProfileData;
+                //     cachedProfileData=finalProfileData;
 
 
                 
 
 
-                }
-                else{
+                // }
+                // else{
                     // === FALL 2: AUTO (XING) ===
                     // === FALL 2: AUTOMATISCH (XING Scraper) ===
                     statusDiv.innerText = "🔍 Scrape XING...";
@@ -288,9 +319,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     finalProfileData=response.data;
                     cachedProfileData = response.data; // Speichern
 
-                }
+                // }
               
 
+                console.log("Finale Profildaten für Erstellung:", finalProfileData);
+
+                // -----------------------------------------------------------
+                // PAYLOAD ERSTELLEN & SENDEN
+                // -----------------------------------------------------------
                
                 const payload = {
                     mode: jobId ? "create_with_jobid" : "create",
@@ -306,6 +342,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                 };
                 if(jobId) payload.job_id = jobId;
+
+                  if(tabUrl.includes("linkedin.com")) {
+                    payload.source ="linkedin";
+                }
+                else{
+                    payload.source ="xing";
+                }
+                
 
                 sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
 
@@ -352,16 +396,16 @@ if (recreateBtn) {
             console.log("Geladener Recruiter für Rewrite:", rName, rEmail);
 
 
-            // --- 2. Profiltext holen (Manuell vs Auto) ---
-            if (radioManual && radioManual.checked) {
-                // MANUELL
-                const LinkedInData = manualProfileData.value.trim();
-                if (!LinkedInData) {
-                    throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
-                }
-                finalProfileData = LinkedInData;
-                cachedProfileData = finalProfileData; // Global cachen
-            } else {
+            // // --- 2. Profiltext holen (Manuell vs Auto) ---
+            // if (radioManual && radioManual.checked) {
+            //     // MANUELL
+            //     const LinkedInData = manualProfileData.value.trim();
+            //     if (!LinkedInData) {
+            //         throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
+            //     }
+            //     finalProfileData = LinkedInData;
+            //     cachedProfileData = finalProfileData; // Global cachen
+            // } else {
                 // AUTO (XING)
                 if (!cachedProfileData) {
                     // Falls noch keine Daten da sind, kurz scrapen (Sicherheitsnetz)
@@ -372,13 +416,15 @@ if (recreateBtn) {
                 } else {
                     finalProfileData = cachedProfileData;
                 }
-            }
+            // }
 
 
             // --- 3. Payload erstellen & Senden ---
             // 3. FEHLER BEHOBEN: Payload ist jetzt HIER DRINNEN (im try-Block)
             // damit 'rName' und 'rEmail' sichtbar sind.
             
+            console.log("Finale Profildaten für Rewrite:", finalProfileData);
+
             const payload = {
                 mode: jobId ? "rewrite_with_jobid" : "rewrite",
                 text: finalProfileData, // Besser die lokale Variable nutzen
@@ -396,6 +442,13 @@ if (recreateBtn) {
             if (jobId) {
                 payload.job_id = jobId;
             }
+              if(tabUrl.includes("linkedin.com")) {
+                    payload.source ="linkedin";
+                }
+                else{
+                    payload.source ="xing";
+                }
+                
 
             sendPayloadToN8n(payload, "🎨 Verfeinere Nachricht...", true);
 
@@ -416,6 +469,8 @@ if (recreateBtn) {
         if (isRequestRunning) return;
         isRequestRunning = true;
         statusDiv.innerText = loadingText;
+
+
 
         fetch(API_URL, {
             method: "POST",

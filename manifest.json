@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "XING TOOLs",
-  "version": "1.2",
+  "name": "Recruiter  TOOLs",
+  "version": "2.0",
   "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
   "host_permissions": [
     "https://n8n.stolzberger.cloud/*",
-    "https://xingproxy-842321698577.europe-west1.run.app/*"
+    "https://xingproxy-842321698577.europe-west1.run.app/*",
+    "https://www.xing.com/*", 
+    "https://www.linkedin.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -25,7 +27,7 @@
   "content_scripts": [  
     {
       "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/*/*", "https://*.linkedin.com/*/*"],
-      "js": ["contentScript.js"]
+      "js": ["contentScript.js","content-linkedin.js"]
     }
   ]
 }
