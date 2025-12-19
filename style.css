@@ -11,6 +11,14 @@
   --transition-speed: 0.2s; /* Einheitliche Animationsgeschwindigkeit */
 }
 
+/* --- Input Error State --- */
+.input-error {
+  border-color: #d93025 !important;
+  background-color: #fff5f5 !important;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.15) !important;
+}
+
+
 /* --- Basis Layout --- */
 body {
   width: 100%;

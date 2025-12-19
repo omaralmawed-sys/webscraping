@@ -197,13 +197,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnFetchJobMatchBtn) {
         
         btnFetchJobMatchBtn.addEventListener("click", async () => {
-            const jobId = job_id_input.value.trim();
-            
-            // Wenn eine ID da ist, muss sie aus Zahlen bestehen
-            if (jobId && !/^\d+$/.test(jobId)) {
-                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-                return; // Abbruch, kein Cooldown gestartet!
-            }
+        const jobId = job_id_input ? job_id_input.value.trim() : "";
+
+        if (jobId && !/^\d+$/.test(jobId)) {
+            showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+
+            markInputError(job_id_input);
+
+            setTimeout(() => {
+                clearError();
+                clearInputError(job_id_input);
+            }, 4000);
+
+            return; // Abbruch, kein Cooldown
+        }
+
+
 
             startCooldown();
             
@@ -245,18 +254,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function clearError() {
+    statusDiv.innerHTML = "";
+}
+
+
     // --- B. Nachricht Erstellen Button ---
     if (scrapeBtn) {
         scrapeBtn.addEventListener("click", async () => {
 
-         // 1. Erst Daten holen & Validieren (BEVOR Cooldown startet)
-            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+      const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
 
-            // Wenn eine ID da ist, muss sie aus Zahlen bestehen
-            if (jobId && !/^\d+$/.test(jobId)) {
-                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-                return; // Abbruch, kein Cooldown gestartet!
-            }
+if (jobId && !/^\d+$/.test(jobId)) {
+    showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+
+    markInputError(jobIdInputMessage);
+
+    setTimeout(() => {
+        clearError();
+        clearInputError(jobIdInputMessage);
+    }, 4000);
+
+    return; // Abbruch, kein Cooldown
+}
+
             startCooldown();
 
 
@@ -649,4 +670,16 @@ if (recreateBtn) {
         btn.innerText = "✅";
         setTimeout(() => btn.innerText = original, 1500);
     }
+
+    function markInputError(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.add("input-error");
+}
+
+function clearInputError(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.remove("input-error");
+}
+
 });
+
