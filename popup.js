@@ -1,7 +1,89 @@
-// popup.js
+// ========================================
+// AUTOMATISCHE PLATTFORM-ERKENNUNG (MIT GRAU-MODUS)
+// ========================================
 
+const platformConfig = {
+    linkedin: { class: 'platform-linkedin', color: '#0A66C2', name: 'LinkedIn' },
+    xing: { class: 'platform-xing', color: '#026466', name: 'XING' },
+    unknown: { class: 'platform-unknown', color: '#6c757d', name: 'Unbekannt' } // Grau für unbekannte Seiten
+};
+
+let lastDetectedPlatform = null;
+
+async function applyPlatformStyles() {
+    try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || tabs.length === 0) return;
+
+        const tab = tabs[0];
+        const body = document.body;
+        const url = (tab.url || "").toLowerCase();
+
+        let currentPlatform = 'unknown'; // Standardmäßig auf Unbekannt setzen
+
+        if (url.includes('linkedin.com')) {
+            currentPlatform = 'linkedin';
+        } else if (url.includes('xing.com')) {
+            currentPlatform = 'xing';
+        }
+
+        // Styles anwenden
+        body.classList.remove('platform-xing', 'platform-linkedin', 'platform-unknown');
+        const config = platformConfig[currentPlatform];
+        
+        body.classList.add(config.class);
+        body.style.setProperty('--platform-color', config.color);
+
+        // BENACHRICHTIGUNG ANZEIGEN
+        if (lastDetectedPlatform !== currentPlatform) {
+            animatePlatformSwitch(config.name, config.color);
+            lastDetectedPlatform = currentPlatform;
+        }
+
+    } catch (e) {
+        console.error("Style-Fehler:", e);
+    }
+}
+
+function animatePlatformSwitch(platformName, color) {
+    const oldNote = document.querySelector('.platform-notification');
+    if (oldNote) oldNote.remove();
+
+    const notification = document.createElement('div');
+    notification.className = 'platform-notification';
+    notification.innerHTML = `
+        <div class="platform-badge" style="background: ${color}">
+            ${platformName} Modus aktiv
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 500);
+    }, 3000);
+}
+
+// Initialisierung
+applyPlatformStyles();
+document.addEventListener('DOMContentLoaded', applyPlatformStyles);
+
+if (chrome.tabs && chrome.tabs.onActivated) {
+    chrome.tabs.onActivated.addListener(applyPlatformStyles);
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+        if (changeInfo.status === 'complete') applyPlatformStyles();
+    });
+}
+
+
+// ========================================
+// DEIN BESTEHENDER CODE KOMMT JETZT HIER:
+// =======
 document.addEventListener('DOMContentLoaded', () => {
 
+    
     // --- KONFIGURATION ---
     const API_URL = "https://xingproxy-842321698577.europe-west1.run.app/xing"; 
     const COOLDOWN_SECONDS = 20;
@@ -110,12 +192,16 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("🟢 XING Seite erkannt.");
             return await handleXingScrape(tab.id); 
         }
-        else if(tabUrl.includes("linkedin.com")) {
+        else if(tabUrl.includes("linkedin.com")) {  
             console.log("🔵 LinkedIn Seite erkannt.");
             return await handleLinkedInScrape(tab.id); 
         }
         else {
+            
+            
             throw new Error("Bitte öffne ein XING oder LinkedIn Profil.");
+           
+
         }
     }
 
@@ -132,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await new Promise(r => setTimeout(r, 100));
                 return await sendMessageToTab(tabId, { action: "scrape" });
             } catch (injectError) {
-                throw new Error("Fehler beim Lesen. Bitte Seite (Xing) neu laden (F5).");
+                throw new Error("Fehler beim Lesen. Bitte Seite (Xing) neu laden (F5) oder Sind Sie bei der falschen Seite.");
             }
         }
     }
@@ -153,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // 2. WICHTIG: 1 Sekunde warten!
                 console.log("⏳ Warte 2 Sekunde auf Script-Start...");
-                await new Promise(r => setTimeout(r, 1000)); 
+                await new Promise(r => setTimeout(r, 2000)); 
                 
                 // 3. Nochmal fragen
                 console.log("2. Versuch: Sende Ping erneut...");
@@ -196,20 +282,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- A. Job Matching Button ---
     if (btnFetchJobMatchBtn) {
         
-        btnFetchJobMatchBtn.addEventListener("click", async () => {
+       btnFetchJobMatchBtn.addEventListener("click", async () => {
         const jobId = job_id_input ? job_id_input.value.trim() : "";
 
-        if (jobId && !/^\d+$/.test(jobId)) {
-            showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-
+        // 1. FALL: Feld ist leer
+        if (!jobId) {
+            showError("Bitte eine Job-ID eingeben.");
             markInputError(job_id_input);
 
             setTimeout(() => {
                 clearError();
                 clearInputError(job_id_input);
             }, 4000);
+            return; // Abbruch
+        }
 
-            return; // Abbruch, kein Cooldown
+        // 2. FALL: Eingabe ist nicht rein numerisch
+        if (!/^\d+$/.test(jobId)) {
+            showError("Bitte eine gültige Job-ID (nur Zahlen) eingeben.");
+            markInputError(job_id_input);
+
+            setTimeout(() => {
+                clearError();
+                clearInputError(job_id_input);
+            }, 4000);
+            return; // Abbruch
         }
 
 
@@ -513,7 +610,7 @@ if (recreateBtn) {
             const makeList = (arr) => arr && arr.length ? arr.map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('') : '<li>-</li>';
 
             const htmlContent = `
-                <div style="border-left: 5px solid ${colorHex}; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                <div style="border-left: 5px solid ${colorHex}; background: #fff; padding: 8    px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
                     <h3 style="color: ${colorHex}; margin: 0 0 5px 0; font-size: 16px;">${output.status_headline || "Analyse"}</h3>
                     <div style="font-weight:bold; margin-bottom: 10px; color:#333;">
                         Empfehlung: <span style="background:${bgColor}; padding:2px 6px; border-radius:4px; color:${colorHex}">${output.recommendation || "-"}</span>
@@ -680,6 +777,8 @@ function clearInputError(inputEl) {
     if (!inputEl) return;
     inputEl.classList.remove("input-error");
 }
+
+
 
 });
 

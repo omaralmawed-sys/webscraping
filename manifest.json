@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Recruiter  TOOLs",
+  "name": "Recruiting Tools",
   "version": "2.0",
   "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
   "host_permissions": [

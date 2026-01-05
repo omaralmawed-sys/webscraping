@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Recruiter  TOOls ✨</title>
+  <title>Recruiting Tools✨</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <header>
-    <h2>Recruiter  TOOls✨</h2>
+    <h2>Recruiting Tools✨</h2>
   </header>
 
 
@@ -48,9 +48,9 @@
       </button>
     </div>
 
-    <div id="matchResult" class="hidden card" >
-        <label>Ergebnis:</label>
-        <div id="matchOutputText" style="font-size: 13px; margin-top: 10px;"></div>
+    <div id="matchResult" class="hidden" >
+        
+        <div id="matchOutputText" ></div>
     </div>
 
 </div>
@@ -95,8 +95,10 @@
 
 
 
-<div class="quick-settings">
+<!-- ERSETZE in deiner popup.html den Bereich ab "Quick Settings" bis "resultContainer" mit diesem Code: -->
 
+<!-- QUICK SETTINGS: Tonalität & Länge nebeneinander -->
+<div class="quick-settings">
     <div class="setting-group">
       <label for="tonalität">Tonalität</label>
       <select id="tonalität">
@@ -113,53 +115,54 @@
             <option value="Sehr detailliert">Detailliert</option>
         </select>
     </div>
-
 </div>
 
-<div class="quick-settings">
+<!-- JOB-ID EINGABE (bleibt wie vorher) -->
+<div class="quick-settings" style="grid-template-columns: 1fr; margin-top: -8px;">
   <div class="setting-group">
-    <label for="job_id_input_message">Bitte Job-ID eingeben (Optional):</label>
-      <input type="text" id="job_id_input_message" placeholder="z.B. 123456" style="margin-bottom: 15px;">
+    <label for="job_id_input_message">Job-ID (Optional)</label>
+    <input type="text" id="job_id_input_message" placeholder="z.B. 123456">
   </div>
 </div>
     
-    <button id="scrapeBtn"  class="main-btn">
-      <span class="btn-text">Nachricht erstellen 🚀</span>
-      <div class="spinner hidden"></div>
-    </button>
-  </div>
-  
-  <div id="resultContainer" class="hidden">
+<button id="scrapeBtn" class="main-btn">
+  <span class="btn-text">Nachricht erstellen 🚀</span>
+  <div class="spinner hidden"></div>
+</button>
+</div>
+
+<!-- ERGEBNIS CONTAINER - NEUES DESIGN -->
+<div id="resultContainer" class="hidden">
     
+    <!-- BETREFF CARD -->
     <div class="result-group">
       <div class="label-row">
-        <label>Betreff</label>
-        <button class="copy-btn" id="copySubject" title="Kopieren">📋</button>
+        <label>📧 Betreff</label>
+        <button class="copy-btn" id="copySubject" title="Betreff kopieren">Kopieren</button>
       </div>
       <input type="text" id="outputSubject" readonly>
     </div>
 
+    <!-- NACHRICHT CARD -->
     <div class="result-group">
       <div class="label-row">
-        <label>Nachricht</label>
-        <button class="copy-btn" id="copyMessage" title="Kopieren">📋</button>
+        <label>✉️ Nachricht</label>
+        <button class="copy-btn" id="copyMessage" title="Nachricht kopieren">Kopieren</button>
       </div>
       <textarea id="outputMessage" readonly></textarea>
     </div>
 
-  </div>
+</div>
 
-<div id="recreateContainer" class="action-row hidden" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-  
-  <p style="font-size: 11px; color: #666; margin-bottom: 8px; text-align: center;">
-    Nicht zufrieden? Ändere den Wunsch oben & klicke hier:
+<!-- ANPASSEN BUTTON (bleibt wie vorher) -->
+<div id="recreateContainer" class="action-row hidden" style="margin: 0 16px 16px 16px;">
+  <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; text-align: center;">
+    💡 Nicht zufrieden? Ändere den Wunsch oben & klicke hier:
   </p>
-
   <button id="recreateBtn" class="secondary-btn">
     <span class="btn-text">Nachricht anpassen 🔄</span>
     <div class="spinner hidden"></div>
   </button>
-
 </div>
 
   </div>

@@ -2,174 +2,182 @@ if (!window.__xingScraperListenerRegistered) {
     window.__xingScraperListenerRegistered = true;
     console.log("🚀 XING Scraper Listener registriert.");
 
+    // =========================================================
+    // 1. iFRAME-LOGIK (DEFINITION)
+    // =========================================================
+    async function fetchXingSettingsContent() {
+        return new Promise((resolve) => {
+            const settingsUrl = "https://www.xing.com/recruiting-settings";
+            const iframeId = "xing-settings-loader-" + Math.random().toString(36).slice(2);
+            const iframe = document.createElement("iframe");
+            iframe.id = iframeId;
+            iframe.style.cssText = "position:absolute;width:1024px;height:1024px;top:-9999px;left:-9999px;visibility:hidden;";
+            iframe.src = settingsUrl;
+            document.body.appendChild(iframe);
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "scrape") {
-    
-    // Wir müssen die Antwort "asynchron" machen, weil wir auf den Speicher warten
-    // Deshalb packen wir alles in die Speicher-Abfrage:
-    
-    chrome.storage.local.get(['cachedRecruiter'], (result) => {
-        
-        // --- 1. Hilfsfunktionen ---
-        const getText = (parent, selector) => {
-            if (!parent) return null;
-            const el = parent.querySelector(selector);
-            return el ? el.innerText.trim() : null;
-        };
+            let attempts = 0;
+            const maxAttempts = 40; 
 
-        // --- 2. Daten-Struktur initialisieren ---
-        const extractedData = {
-            profile: { name: "", role: "", location: "" }, // Sven
-            recruiter: { name: "", company: "", email: "" }, // Omar
-            recruiterName:{name:""}, // Nur Name für einfache Nutzung
-            experience: [],
-            education: [],
-            skills: [],
-            languages: [],
-            willingness_to_change: "",
-            job_preferences: {}
-        };
+            const interval = setInterval(() => {
+                attempts++;
+                try {
+                    const doc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (!doc) return;
 
+                    const emailInput = doc.querySelector('[data-testid="businessEmail"]');
+                    const nameDiv = doc.querySelector('div[size="3"].index-es__Ro-sc-29676499-24');
 
-
-
-        
-
-        // =========================================================
-        // A. RECRUITER INFO (Intelligente Logik)
-        // =========================================================
-
-      const topBarProfile = document.querySelector('div[name][src*="profile-images"]');
-
-      extractedData.recruiterName.name=topBarProfile.getAttribute("name") || "";
-
-      console.log("Recruiter gefunden (Top Bar):", extractedData.recruiter.name);
-    
-
-
-
-
-        const menu = document.querySelector('[data-wry="Menu"]');
-        
-        if (menu) {
-            // FALL 1: Menü ist OFFEN -> Wir lesen frisch aus und speichern es ab
-            console.log("Menü offen - Lese und speichere Recruiter-Daten...");
-            
-            extractedData.recruiter.name = getText(menu, '[data-wry="Text"][size="3"]');
-            
-            const secondaryInfos = menu.querySelectorAll('[data-wry="Text"][color="secondaryText"]');
-            if (secondaryInfos.length > 0) extractedData.recruiter.company = secondaryInfos[0].innerText;
-            if (secondaryInfos.length > 1){
-              const fixEmail=extractedData.recruiterName.name.toLowerCase().replaceAll(" ",".");
-            } extractedData.recruiter.email = secondaryInfos[1].innerText || fixEmail + "@stolzberger.de";
-
-            // Speichern für die Zukunft (Cache Update)
-            chrome.storage.local.set({ cachedRecruiter: extractedData.recruiter });
-
-        } else {
-            // FALL 2: Menü ist ZU -> Wir nutzen das Gedächtnis (Cache)
-            console.log("Menü geschlossen - Versuche Cache zu laden...");
-            
-            if (result.cachedRecruiter) {
-                console.log("Cache gefunden!", result.cachedRecruiter);
-                extractedData.recruiter = result.cachedRecruiter;
-            } else {
-                console.warn("Kein Cache und Menü zu. Bitte einmal Menü öffnen!");
-                extractedData.recruiter.name = "Recruiter (Bitte Menü einmal öffnen)"; 
-            }
-        }
-
-        // =========================================================
-        // B. KANDIDATEN INFO (Sven) - Das ist immer da
-        // =========================================================
-        
-        // 1. Kopfdaten
-        const contactWidget = document.querySelector('[data-testid="contact-details-widget"]');
-        if (contactWidget) {
-            extractedData.profile.name = getText(contactWidget, 'b[data-wry="Text"][size="2"]');
-            extractedData.profile.role = getText(contactWidget, 'b[data-wry="Text"][color="grey400"]');
-            
-            // Ort Suche (Verbesserter Selektor für das HTML von vorhin)
-            const panels = contactWidget.closest('[data-wry="Panel"]').querySelectorAll('[data-wry="Text"][size="2"]');
-            // Der Ort ist meistens das letzte Element in diesem Block (z.B. "Berlin,Deutschland")
-            if(panels.length > 0) {
-                 // Wir filtern Elemente aus, die Labels sind (wie "Geschäftliche Kontaktdaten")
-                 const lastText = panels[panels.length - 1].innerText;
-                 if(!lastText.includes("Kontaktdaten")) {
-                     extractedData.profile.location = lastText;
-                 }
-            }
-        }
-
-        // 2. Berufserfahrung
-        const expItems = document.querySelectorAll('[data-testid="professional-experience"]');
-        expItems.forEach(item => {
-            const title = getText(item, '[data-wry="Text"][size="2"]') || getText(item, 'div[class*="hRxjwK"]');
-            const company = getText(item, '[data-wry="Text"].jlTEdn') || getText(item, 'div[class*="jlTEdn"]');
-            const date = getText(item, '[color="secondaryText"]');
-            extractedData.experience.push({ title, company, date });
-        });
-
-        // 3. Ausbildung
-        const eduItems = document.querySelectorAll('[data-testid="education-background-item"]');
-        eduItems.forEach(item => {
-            extractedData.education.push({
-                degree: getText(item, '[data-wry="Text"][class*="hRxjwK"]'),
-                school: getText(item, '[data-wry="Text"][class*="jlTEdn"]')
-            });
-        });
-
-        // 4. Skills
-        const skillsWidget = document.querySelector('[data-testid="haves-widget"]');
-        if (skillsWidget) {
-            const skillEls = skillsWidget.querySelectorAll('[data-wry="Text"]');
-            skillEls.forEach(el => extractedData.skills.push(el.innerText));
-        }
-
-        // 5. Sprachen
-        const langWidget = document.querySelector('[data-testid="languages-widget"]');
-        if (langWidget) {
-            const langRows = langWidget.querySelectorAll('.sc-fjvvzt');
-            langRows.forEach(row => {
-                const texts = row.querySelectorAll('[data-wry="Text"]');
-                if(texts.length >= 2) {
-                    extractedData.languages.push(`${texts[0].innerText} (${texts[1].innerText.replace('- ', '')})`);
-                } else if (texts.length === 1) {
-                    extractedData.languages.push(texts[0].innerText);
+                    if (emailInput || nameDiv || attempts >= maxAttempts) {
+                        clearInterval(interval);
+                        const extracted = (emailInput || nameDiv) ? {
+                            email: emailInput?.value || "",
+                            name: nameDiv?.innerText.trim() || ""
+                        } : null;
+                        iframe.remove();
+                        resolve(extracted);
+                    }
+                } catch (e) {
+                    console.error("iFrame Fehler:", e);
                 }
-            });
-        }
+            }, 200);
+        });
+    }
 
-        // 6. Wechselmotivation & ProJobs (Rest wie gehabt)
-        const motivationWidget = document.querySelector('[data-testid="profileWillingnessToChangeJobs"]');
-        if (motivationWidget) {
-            const panel = motivationWidget.closest('[data-wry="Panel"]');
-            if (panel) {
-                const text = getText(panel, '[color="grey800"]');
-                const status = getText(panel, '[data-testid="seek-status-title"]');
-                extractedData.willingness_to_change = `${status || ''} - ${text || ''}`;
-            }
-        }
+    // =========================================================
+    // 2. HAUPT-LISTENER
+    // =========================================================
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === "scrape") {
+            
+            // Wir nutzen eine async Funktion, um "await" nutzen zu können
+            (async () => {
+                try {
+                    // --- A. RECRUITER DATEN HOLEN (Priorität 1: iFrame) ---
+                    console.log("⏳ Versuche Recruiter-Daten via iFrame zu laden...");
+                    const recruiterFromIframe = await fetchXingSettingsContent();
+                    
+                    // Daten aus dem Cache laden (Priorität 2: Fallback)
+                    const storage = await chrome.storage.local.get(['cachedRecruiter']);
+                    const cachedRecruiter = storage.cachedRecruiter || {};
 
-        const proJobs = document.querySelector('[data-testid="job-seeker-projobs"]');
-        if (proJobs) {
-            const rows = proJobs.querySelectorAll('.sc-fopFza');
-            rows.forEach(row => {
-                const label = row.childNodes[0]?.textContent?.replace(':', '').trim();
-                const valDiv = row.querySelector('[data-testid$="-value"]');
-                if (label && valDiv) {
-                    extractedData.job_preferences[label] = valDiv.innerText;
+                    const extractedData = {
+                        profile: { name: "", role: "", location: "" },
+                        recruiter: { 
+                            name: recruiterFromIframe?.name || cachedRecruiter.name || "Recruiter",
+                            email: recruiterFromIframe?.email || cachedRecruiter.email || "",
+                            company: cachedRecruiter.company || "" 
+                        },
+                        experience: [],
+                        education: [],
+                        skills: [],
+                        languages: [],
+                        willingness_to_change: "",
+                        job_preferences: {},
+                        interessen:[]
+                    };
+
+                    // Cache aktualisieren, wenn neue Daten gefunden wurden
+                    if (recruiterFromIframe) {
+                        chrome.storage.local.set({ cachedRecruiter: extractedData.recruiter });
+                    }
+
+                    // --- B. KANDIDATEN DATEN (Priorität 3: Aktuelle Seite) ---
+                    const getText = (parent, selector) => {
+                        const el = parent ? parent.querySelector(selector) : null;
+                        return el ? el.innerText.trim() : "";
+                    };
+
+                    // Kopfdaten
+                    const contactWidget = document.querySelector('[data-testid="contact-details-widget"]');
+                    if (contactWidget) {
+                        extractedData.profile.name = getText(contactWidget, 'b[data-wry="Text"][size="2"]');
+                        extractedData.profile.role = getText(contactWidget, 'b[data-wry="Text"][color="grey400"]');
+                        const panels = contactWidget.closest('[data-wry="Panel"]')?.querySelectorAll('[data-wry="Text"][size="2"]');
+                        if(panels && panels.length > 0) {
+                            const lastText = panels[panels.length - 1].innerText;
+                            if(!lastText.includes("Kontaktdaten")) extractedData.profile.location = lastText;
+                        }
+                    }
+
+                    // Berufserfahrung
+                    document.querySelectorAll('[data-testid="professional-experience"]').forEach(item => {
+                        extractedData.experience.push({
+                            title: getText(item, '[data-wry="Text"][size="2"]') || getText(item, 'div[class*="hRxjwK"]'),
+                            company: getText(item, '[data-wry="Text"].jlTEdn') || getText(item, 'div[class*="jlTEdn"]'),
+                            date: getText(item, '[color="secondaryText"]')
+                        });
+                    });
+
+                    // Skills
+                    const skillsWidget = document.querySelector('[data-testid="haves-widget"]');
+                    if (skillsWidget) {
+                        skillsWidget.querySelectorAll('[data-wry="Text"]').forEach(el => extractedData.skills.push(el.innerText));
+                    }
+
+                    // Sprachen
+                    const langWidget = document.querySelector('[data-testid="languages-widget"]');
+                    if (langWidget) {
+                        langWidget.querySelectorAll('.sc-fjvvzt').forEach(row => {
+                            const texts = row.querySelectorAll('[data-wry="Text"]');
+                            if(texts.length >= 1) extractedData.languages.push(texts[0].innerText);
+                        });
+                    }
+
+                      // Interessen
+                    // 1. Find all text elements and filter for the specific "Interessen" header
+                        const textNodes = Array.from(document.querySelectorAll('[data-wry="Text"]'));
+                        const interessenHeader = textNodes.find(el => el.innerText.trim() === 'Interessen');
+
+                        if (interessenHeader) {
+                            // 2. Navigate up to the main container (the Panel)
+                            const panel = interessenHeader.closest('[data-wry="Panel"]');
+
+                            if (panel) {
+                                // 3. Find the container that holds the text. 
+                                // Based on the image, the panel has two main children: the header and the content.
+                                // We select the last main child (the content wrapper).
+                                const contentWrapper = panel.lastElementChild;
+
+                                if (contentWrapper) {
+                                    // The actual text is inside a nested div within this wrapper.
+                                    // We can grab all text from this wrapper to be safe.
+                                    const rawText = contentWrapper.innerText; 
+                                    // This will equal: "IT,Sport / Football / Fußball,Webdesign,Politik..."
+
+                                    if (rawText) {
+                                        // 4. Split the single string by commas into an array and trim whitespace
+                                        const interestsArray = rawText.split(',').map(text => text.trim());
+
+                                        // 5. Push the results into your extractedData object
+                                        // We verify that 'extractedData' and 'extractedData.interessen' exist first
+                                        if (typeof extractedData !== 'undefined') {
+                                            if (!extractedData.interessen) extractedData.interessen = [];
+                                            extractedData.interessen.push(...interestsArray);
+                                        } else {
+                                            console.log("Found Interests:", interestsArray);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    // Wechselmotivation
+                    const motivationWidget = document.querySelector('[data-testid="profileWillingnessToChangeJobs"]');
+                    if (motivationWidget) {
+                        const panel = motivationWidget.closest('[data-wry="Panel"]');
+                        const status = getText(panel, '[data-testid="seek-status-title"]');
+                        extractedData.willingness_to_change = status;
+                    }
+
+                    console.log("✅ Daten gesendet:", extractedData);
+                    sendResponse({ data: extractedData });
+
+                } catch (error) {
+                    console.error("Scrape-Fehler:", error);
+                    sendResponse({ status: "error", message: error.message });
                 }
-            });
+            })();
+
+            return true; // Hält den Kanal für sendResponse offen
         }
-
-        // --- ENDE: DATEN SENDEN ---
-        console.log("Sende Daten zurück an Popup:", extractedData);
-        sendResponse({ data: extractedData });
-
-    }); // Ende storage.get
-
-    return true; // WICHTIG: Signalisiert Chrome, dass sendResponse asynchron (später) kommt
-  }
-})};
+    });
+}
