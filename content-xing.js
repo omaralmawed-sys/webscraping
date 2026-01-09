@@ -7,6 +7,7 @@ if (!window.__xingScraperListenerRegistered) {
   // =========================================================
   const DEFAULT_FALLBACK = "Keine Angabe";
 
+
   function getText(scope, selector, fallback = DEFAULT_FALLBACK) {
     if (!scope || !selector) return fallback;
 
@@ -114,7 +115,7 @@ if (!window.__xingScraperListenerRegistered) {
           education: [],
           skills: [],
           languages: [],
-          willingness_to_change: "",
+          willingness_to_change:[],
           job_preferences: {}, // <- leer starten, dann befüllen
           interessen: []
         };
@@ -147,13 +148,36 @@ if (!window.__xingScraperListenerRegistered) {
         // ---------------------------------------------------------
         // B) BERUFSERFAHRUNG
         // ---------------------------------------------------------
-        document.querySelectorAll('[data-testid="professional-experience"]').forEach(item => {
-          extractedData.experience.push({
-            title: getText(item, '[data-wry="Text"][size="2"]', "") || getText(item, 'div[class*="hRxjwK"]', ""),
-            company: getText(item, '[data-wry="Text"].jlTEdn', "") || getText(item, 'div[class*="jlTEdn"]', ""),
-            date: getText(item, '[color="secondaryText"]', "")
-          });
-        });
+
+
+        const workExperienceRoot =
+        document.querySelector('[data-testid="work-experience-for-pingdom"]');
+
+        if (workExperienceRoot) {
+        workExperienceRoot
+            .querySelectorAll('[data-testid="professional-experience"]')
+            .forEach(item => {
+
+            const meta = {};
+
+            item.querySelectorAll('.gUEBVX').forEach(row => {
+                const text = row.querySelectorAll('[data-wry="Text"]');
+                if (text.length === 2) {
+                meta[
+                    text[0].innerText.replace(':', '').trim()
+                ] = text[1].innerText.trim();
+                }
+            });
+
+            extractedData.experience.push({
+                title: getText(item, 'div[data-wry="Text"].hRxjwK'),
+                company: getText(item, 'div[data-wry="Text"].jlTEdn'),
+                date: getText(item, 'div[data-wry="Text"][color="secondaryText"]'),
+                tätigkeiten: getText(item, 'div.hreHyB div[data-wry="Text"].jlTEdn'),
+                metadata: meta
+            });
+            });
+        }
 
         // ---------------------------------------------------------
         // C) SKILLS (dedupe + trim)
@@ -226,14 +250,27 @@ if (!window.__xingScraperListenerRegistered) {
         // ---------------------------------------------------------
         // G) WECHSELMOTIVATION (separates widget)
         // ---------------------------------------------------------
-        const motivationWidget = document.querySelector('[data-testid="profileWillingnessToChangeJobs"]');
-        if (motivationWidget) {
-          const panel = motivationWidget.closest('[data-wry="Panel"]');
-          extractedData.willingness_to_change =
-            getText(panel || document, '[data-testid="seek-status-title"]', DEFAULT_FALLBACK);
-        } else {
-          extractedData.willingness_to_change = extractedData.job_preferences.seek_status || "";
-        }
+            const motivationPanel =
+            document.querySelector('[data-testid="profileWillingnessToChangeJobs"]')
+                ?.closest('div[data-wry="Panel"]');
+
+            if (motivationPanel) {
+            extractedData.willingness_to_change.push({
+                summary: getText(
+                motivationPanel,
+                'div[data-wry="Text"][color="grey800"]',
+                DEFAULT_FALLBACK
+                ),
+                indicators: Array.from(
+                motivationPanel.querySelectorAll('ul li div[data-wry="Text"]')
+                )
+                .map(el => el.innerText.replace(/\s+/g, ' ').trim())
+                .filter(Boolean)
+            });
+            }
+
+
+
 
 
         
