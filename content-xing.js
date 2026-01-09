@@ -164,8 +164,8 @@ if (!window.__xingScraperListenerRegistered) {
                 const text = row.querySelectorAll('[data-wry="Text"]');
                 if (text.length === 2) {
                 meta[
-                    text[0].innerText.replace(':', '').trim()
-                ] = text[1].innerText.trim();
+                    text[0].textContent.replace(':', '').trim()
+                ] = text[1].textContent.trim();
                 }
             });
 
