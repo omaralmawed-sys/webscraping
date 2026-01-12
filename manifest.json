@@ -5,7 +5,7 @@
   "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
   "host_permissions": [
     "https://n8n.stolzberger.cloud/*",
-    "https://xingproxy-842321698577.europe-west1.run.app/*",
+    "https://xingproxy-842321698577.europe-west1.run.app/*", 
     "https://www.xing.com/*", 
     "https://www.linkedin.com/*"
   ],
@@ -26,7 +26,7 @@
   },
   "content_scripts": [  
     {
-      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/*/*", "https://*.linkedin.com/*/*"],
+      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/in/*", "https://*.linkedin.com/in/*"],
       "js": ["content-xing.js","content-linkedin.js"]
     }
   ]

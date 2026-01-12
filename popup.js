@@ -188,11 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("Aktive Tab URL:", tabUrl);
 
-        if(tabUrl.includes("xing.com")) {
+        if(tabUrl.includes("xing.com/profiles")) {
             console.log("🟢 XING Seite erkannt.");
             return await handleXingScrape(tab.id); 
         }
-        else if(tabUrl.includes("linkedin.com")) {  
+        else if(tabUrl.includes("linkedin.com/in")) {  
             console.log("🔵 LinkedIn Seite erkannt.");
             return await handleLinkedInScrape(tab.id); 
         }
