@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- KONFIGURATION ---
     const API_URL = "https://xingproxy-842321698577.europe-west1.run.app/xing"; 
-    const COOLDOWN_SECONDS = 20;
+    const COOLDOWN_SECONDS = 25;
 
     // --- GLOBALE VARIABLEN ---
     let cachedProfileData = null; 
@@ -360,92 +360,65 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrapeBtn) {
         scrapeBtn.addEventListener("click", async () => {
 
-      const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
 
-if (jobId && !/^\d+$/.test(jobId)) {
-    showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-
-    markInputError(jobIdInputMessage);
-
-    setTimeout(() => {
-        clearError();
-        clearInputError(jobIdInputMessage);
-    }, 4000);
-
-    return; // Abbruch, kein Cooldown
-}
+            // Validierung Job-ID
+            if (jobId && !/^\d+$/.test(jobId)) {
+                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+                markInputError(jobIdInputMessage);
+                setTimeout(() => {
+                    clearError();
+                    clearInputError(jobIdInputMessage);
+                }, 4000);
+                return; 
+            }
 
             startCooldown();
 
+            // ---------------------------------------------------------
+            // NEU: URL VORHER PRÜFEN FÜR KORREKTEN TEXT
+            // ---------------------------------------------------------
+            // Wir holen kurz die URL, um den richtigen Text anzuzeigen
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const currentUrl = tabs[0]?.url?.toLowerCase() || "";
+            
+            // UI Vorbereitung
+            if (currentUrl.includes("xing.com")) {
+                statusDiv.innerText = "🔍 Scrape XING...";
+            } else if (currentUrl.includes("linkedin.com")) {
+                statusDiv.innerText = "🔍 Scrape LinkedIn...";
+            } else {
+                statusDiv.innerText = "🔍 Lese Profil..."; // Fallback
+            }
+            // ---------------------------------------------------------
 
-            // 2. UI Vorbereitung
-            statusDiv.innerText = "🔍 Lese Profil...";
             resultContainer.classList.add("hidden");
-            if(recreateContainer) recreateContainer.classList.add("hidden");
+            if (recreateContainer) recreateContainer.classList.add("hidden");
             const spinnerScrape = scrapeBtn.querySelector(".spinner");
-            if(spinnerScrape) spinnerScrape.classList.remove("hidden");
+            if (spinnerScrape) spinnerScrape.classList.remove("hidden");
 
+            try {
+                let finalProfileData;
 
-          try {
-             let finalProfileData;
-            
-            // 1. Daten aus Chrome laden
-            const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
-            
-            // 2. Das Objekt herausholen (oder ein leeres Objekt {}, falls nichts da ist)
-            const recruiterData = storageResult.cachedRecruiter || {};
+                // 1. Recruiter Daten laden (Bleibt gleich)
+                const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
+                const recruiterData = storageResult.cachedRecruiter || {};
+                const rName = recruiterData?.name || "";   
+                const rEmail = recruiterData?.email || ""; 
 
-            // 3. Werte direkt auslesen (Passend zu deinem Screenshot)
-            const rName = recruiterData?.name || "";    // Holt "Omar Al Mawed"
-            const rEmail = recruiterData?.email || "";  // Holt "omar.almawed@..."
+                console.log("Geladener Recruiter:", rName, rEmail);
 
-            console.log("Geladener Recruiter:", rName, rEmail); // Zur Kontrolle
-
-            // ... hier geht dein Code weiter ...
-
-
-                // -----------------------------------------------------------
-                // ENTSCHEIDUNG: MANUELL (LinkedIn) ODER AUTO (XING)?
-                // -----------------------------------------------------------
-                // if(radioManual && radioManual.checked){
-                //     // === FALL 1: MANUELLER TEXT (LinkedIn) ===
-
-                //     const rawText = manualProfileData.value.trim();
-                //     if(!rawText){
-                //         throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
-                //     }
-
-                //     // Wir verpacken den rohen Text in ein JSON-Objekt, damit die KI es versteht
-
-                //     finalProfileData= rawText;
-
-                //     // Wir cachen es sofort für den "Anpassen"-Button
-
-                //     cachedProfileData=finalProfileData;
-
-
+                // 2. Scrapen (Deine scrapeData Funktion übernimmt jetzt)
+                // Die Funktion scrapeData() holt sich die URL intern nochmal, 
+                // das ist okay und stört nicht.
+                const response = await scrapeData();
                 
-
-
-                // }
-                // else{
-                    // === FALL 2: AUTO (XING) ===
-                    // === FALL 2: AUTOMATISCH (XING Scraper) ===
-                    statusDiv.innerText = "🔍 Scrape XING...";
-                      // Scrapen mit der neuen Injection-Logik
-                    const response = await scrapeData();
-                    finalProfileData=response.data;
-                    cachedProfileData = response.data; // Speichern
-
-                // }
-              
+                finalProfileData = response.data;
+                cachedProfileData = response.data; // Speichern
 
                 console.log("Finale Profildaten für Erstellung:", finalProfileData);
 
-                // -----------------------------------------------------------
-                // PAYLOAD ERSTELLEN & SENDEN
-                // -----------------------------------------------------------
-               
+                // 3. Payload erstellen
                 const payload = {
                     mode: jobId ? "create_with_jobid" : "create",
                     text: finalProfileData,
@@ -453,29 +426,25 @@ if (jobId && !/^\d+$/.test(jobId)) {
                     tonality: tonalitySelect.value,
                     length: lengthSelect.value,
                     timestamp: new Date().toISOString(),
-                    name : rName,
-                    email : rEmail
-
-
-                    
+                    name: rName,
+                    email: rEmail
                 };
-                if(jobId) payload.job_id = jobId;
-
-                  if(tabUrl.includes("linkedin.com")) {
-                    payload.source ="linkedin";
-                }
-                else{
-                    payload.source ="xing";
-                }
                 
+                if (jobId) payload.job_id = jobId;
+
+                // Source setzen (XING oder LinkedIn)
+                // Wir können hier direkt die Variable von oben (currentUrl) nutzen
+                if (currentUrl.includes("linkedin.com")) {
+                    payload.source = "linkedin";
+                } else {
+                    payload.source = "xing";
+                }
 
                 sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
 
-            
-
             } catch (err) {
                 showError(err.message);
-                if(spinnerScrape) spinnerScrape.classList.add("hidden");
+                if (spinnerScrape) spinnerScrape.classList.add("hidden");
             }
         });
     }
@@ -663,6 +632,8 @@ if (recreateBtn) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000);
 
+        console.log("Sende Payload an N8N:", payload);
+
         fetch(API_URL, {
             method: "POST",
             signal: controller.signal,
@@ -671,6 +642,7 @@ if (recreateBtn) {
         })
         .then(res => res.json())
         .then(data => {
+            console.log("requested data:", data);
             clearTimeout(timeoutId);
             const output = Array.isArray(data) ? data[0] : data;
             if(output.error) throw new Error(output.error);
