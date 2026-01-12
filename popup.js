@@ -8,6 +8,33 @@ const platformConfig = {
     unknown: { class: 'platform-unknown', color: '#6c757d', name: 'Unbekannt' } // Grau für unbekannte Seiten
 };
 
+/**
+ * Holt die Recruiter-Daten aus dem Storage und gibt ein Promise zurück.
+ */
+function getRecruiterData() {
+    return new Promise((resolve, reject) => {
+        // Zugriff auf chrome.storage.local
+        chrome.storage.local.get(['cachedRecruiter'], (result) => {
+            
+            // Falls ein technischer Fehler auftritt (optional, aber sicher ist sicher)
+            if (chrome.runtime.lastError) {
+                console.error("Storage Error:", chrome.runtime.lastError);
+                // Wir lösen trotzdem auf (mit leeren Daten), damit der Flow nicht crasht
+                resolve({ rName: "", rEmail: "" });
+                return;
+            }
+
+            // Deine Logik zur Datenaufbereitung
+            const recruiterData = result.cachedRecruiter || {};
+            const rName = recruiterData?.name || "";
+            const rEmail = recruiterData?.email || "";
+
+            // Promise erfolgreich auflösen und Daten zurückgeben
+            resolve({ rName, rEmail });
+        });
+    });
+}
+
 let lastDetectedPlatform = null;
 
 async function applyPlatformStyles() {
@@ -401,10 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let finalProfileData;
 
                 // 1. Recruiter Daten laden (Bleibt gleich)
-                const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
-                const recruiterData = storageResult.cachedRecruiter || {};
-                const rName = recruiterData?.name || "";   
-                const rEmail = recruiterData?.email || ""; 
+
+                const { rName, rEmail } = await getRecruiterData();
 
                 console.log("Geladener Recruiter:", rName, rEmail);
 
@@ -449,102 +474,91 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- C. Nachricht Anpassen (Rewrite) ---
   // --- C. Nachricht Anpassen (Rewrite) ---
-if (recreateBtn) {
-    // 1. FEHLER BEHOBEN: "async" hinzugefügt
-    recreateBtn.addEventListener("click", async () => {
+    if (recreateBtn) {
+        recreateBtn.addEventListener("click", async () => {
 
-        // --- Validierung & Cooldown ---
-        const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
-        if (jobId && !/^\d+$/.test(jobId)) {
-            showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-            return;
-        }
-        startCooldown();
+            // --- Validierung & Cooldown ---
+            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+            if (jobId && !/^\d+$/.test(jobId)) {
+                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+                return;
+            }
+            startCooldown();
 
-        // UI Updates
-        statusDiv.innerText = "✨ Verfeinere Nachricht...";
-        // (Optional: Spinner anzeigen, falls vorhanden)
+            // UI Updates
+            statusDiv.innerText = "✨ Verfeinere Nachricht...";
+            const spinnerRecreate = recreateBtn.querySelector(".spinner");
+            if (spinnerRecreate) spinnerRecreate.classList.remove("hidden");
 
-        try {
-            let finalProfileData;
+            try {
+                // ---------------------------------------------------------
+                // 1. URL FRISCH HOLEN (WICHTIG!)
+                // Damit wir wissen, ob Xing oder LinkedIn, auch ohne vorheriges Scrapen
+                // ---------------------------------------------------------
+                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                const currentUrl = tabs[0]?.url?.toLowerCase() || "";
 
-            // --- 1. Recruiter Daten holen ---
-            const storageResult = await chrome.storage.local.get(['cachedRecruiter']);
-            
-            // 2. FEHLER BEHOBEN: Fallback {} hinzugefügt, falls leer
-            const recruiterData = storageResult.cachedRecruiter || {}; 
-            
-            // Daten sicher auslesen
-            const rName = recruiterData.name || "";
-            const rEmail = recruiterData.email || "";
+                // ---------------------------------------------------------
+                // 2. RECRUITER DATEN (Mit deiner neuen Funktion!)
+                // ---------------------------------------------------------
+                const { rName, rEmail } = await getRecruiterData();
+                console.log("Geladener Recruiter für Rewrite:", rName, rEmail);
 
-            console.log("Geladener Recruiter für Rewrite:", rName, rEmail);
-
-
-            // // --- 2. Profiltext holen (Manuell vs Auto) ---
-            // if (radioManual && radioManual.checked) {
-            //     // MANUELL
-            //     const LinkedInData = manualProfileData.value.trim();
-            //     if (!LinkedInData) {
-            //         throw new Error("Bitte Profilinformationen im manuellen Modus eingeben.");
-            //     }
-            //     finalProfileData = LinkedInData;
-            //     cachedProfileData = finalProfileData; // Global cachen
-            // } else {
-                // AUTO (XING)
+                // ---------------------------------------------------------
+                // 3. PROFIL DATEN HOLEN
+                // ---------------------------------------------------------
+                let finalProfileData;
+                
+                // AUTO (XING/LinkedIn Cache)
                 if (!cachedProfileData) {
                     // Falls noch keine Daten da sind, kurz scrapen (Sicherheitsnetz)
-                    statusDiv.innerText = "🔍 Scrape XING (Daten fehlten)...";
+                    statusDiv.innerText = "🔍 Hole Daten erneut...";
                     const response = await scrapeData();
                     finalProfileData = response.data;
                     cachedProfileData = response.data;
                 } else {
                     finalProfileData = cachedProfileData;
                 }
-            // }
 
+                console.log("Finale Profildaten für Rewrite:", finalProfileData);
 
-            // --- 3. Payload erstellen & Senden ---
-            // 3. FEHLER BEHOBEN: Payload ist jetzt HIER DRINNEN (im try-Block)
-            // damit 'rName' und 'rEmail' sichtbar sind.
-            
-            console.log("Finale Profildaten für Rewrite:", finalProfileData);
+                // ---------------------------------------------------------
+                // 4. PAYLOAD ERSTELLEN
+                // ---------------------------------------------------------
+                const payload = {
+                    mode: jobId ? "rewrite_with_jobid" : "rewrite",
+                    text: finalProfileData,
+                    oldSubject: outputSubject.value,
+                    oldMessage: outputMessage.value,
+                    prompt: userPromptInput.value.trim(),
+                    tonality: tonalitySelect.value,
+                    length: lengthSelect.value,
+                    timestamp: new Date().toISOString(),
+                    name: rName,   // Hier nutzen wir die Variable aus Schritt 2
+                    email: rEmail  // Hier nutzen wir die Variable aus Schritt 2
+                };
 
-            const payload = {
-                mode: jobId ? "rewrite_with_jobid" : "rewrite",
-                text: finalProfileData, // Besser die lokale Variable nutzen
-                oldSubject: outputSubject.value,
-                oldMessage: outputMessage.value,
-                prompt: userPromptInput.value.trim(),
-                tonality: tonalitySelect.value,
-                length: lengthSelect.value,
-                timestamp: new Date().toISOString(),
-                // Hier übergeben wir die Daten, die wir oben geholt haben:
-                name: rName, 
-                email: rEmail
-            };
+                if (jobId) {
+                    payload.job_id = jobId;
+                }
 
-            if (jobId) {
-                payload.job_id = jobId;
+                // Source setzen (sicherstellen, dass currentUrl existiert)
+                if (currentUrl.includes("linkedin.com")) {
+                    payload.source = "linkedin";
+                } else {
+                    payload.source = "xing";
+                }
+
+                sendPayloadToN8n(payload, "🎨 Verfeinere Nachricht...", true);
+
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+                if (spinnerRecreate) spinnerRecreate.classList.add("hidden");
             }
-              if(tabUrl.includes("linkedin.com")) {
-                    payload.source ="linkedin";
-                }
-                else{
-                    payload.source ="xing";
-                }
-                
-
-            sendPayloadToN8n(payload, "🎨 Verfeinere Nachricht...", true);
-
-        } catch (err) {
-            console.error(err);
-            showError(err.message);
-        }
-    });
-}
+        });
+    }
 
 
     // ==========================================
