@@ -73,4 +73,4 @@ The extension requires the following permissions:
 
 ## License
 
-[Your License Here]
+[Stolzberger ]
