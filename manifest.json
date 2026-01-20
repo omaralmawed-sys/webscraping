@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Recruiting Tools",
-  "version": "2.0",
-  "permissions": ["activeTab", "scripting", "sidePanel", "storage"],
+  "version": "3.0",
+  "permissions": ["activeTab", "scripting", "sidePanel", "storage","tabs"],
   "host_permissions": [
     "https://n8n.stolzberger.cloud/*",
     "https://xingproxy-842321698577.europe-west1.run.app/*", 
     "https://www.xing.com/*", 
-    "https://www.linkedin.com/*"
+    "https://www.linkedin.com/*",
+    "https://www.linkedin.com/talent/hire/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -18,7 +19,7 @@
     "128": "icon1.png"
   },
   "action": {
-    "default_title": "Xing Scraper öffnen",
+    "default_title": "AI Scraper öffnen",
     "default_icon": "icon1.png"
   },
   "side_panel": {
@@ -26,8 +27,11 @@
   },
   "content_scripts": [  
     {
-      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/in/*", "https://*.linkedin.com/in/*"],
+      "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/in/*", "https://*.linkedin.com/in/*",
+       "https://www.linkedin.com/talent/hire/*"],
       "js": ["content-xing.js","content-linkedin.js"]
     }
   ]
 }
+
+
