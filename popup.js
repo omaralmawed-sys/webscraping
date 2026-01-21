@@ -11,6 +11,10 @@ const platformConfig = {
 /**
  * Holt die Recruiter-Daten aus dem Storage und gibt ein Promise zurück.
  */
+
+
+
+
 function getRecruiterData() {
     return new Promise((resolve, reject) => {
         // Zugriff auf chrome.storage.local
@@ -33,6 +37,66 @@ function getRecruiterData() {
         });
     });
 }
+
+// ==========================================
+    // X. RECRUITER NAME LOGIC (CHECK & SAVE)
+    // ==========================================
+    
+    const recruiterNameContainer = document.getElementById("recruiter-name-container");
+    const recruiterNameInput = document.getElementById("user_name_input");
+    const btnSaveName = document.getElementById("saveUserNameBtn"); // Der neue Button
+
+    const generator = document.getElementById("nav-to-generator");
+    const matching = document.getElementById("nav-to-job-matching");
+
+    // 1. Beim Start prüfen: Ist ein Name gespeichert?
+    getRecruiterData().then(({ rName }) => {
+        if (!rName || rName.trim() === "") {
+            console.log("Name fehlt. Zeige Eingabefeld.");
+            if (recruiterNameContainer) {
+                generator.classList.add("hidden");
+                matching.classList.add("hidden");
+                recruiterNameContainer.classList.remove("hidden");
+            }
+        }
+    });
+
+    // 2. Klick-Listener für den Speichern-Button
+    if (btnSaveName && recruiterNameInput) {
+        btnSaveName.addEventListener("click", () => {
+            const newName = recruiterNameInput.value.trim();
+
+            if (!newName) {
+                showError("Bitte geben Sie einen Namen ein.");
+                return;
+            }
+
+            // Bestehende Daten holen (um Email nicht zu überschreiben)
+            chrome.storage.local.get(['cachedRecruiter'], (result) => {
+                const currentData = result.cachedRecruiter || {};
+                
+                // Name updaten
+                const updatedData = { 
+                    ...currentData, 
+                    name: newName 
+                };
+
+                // Speichern
+                chrome.storage.local.set({ cachedRecruiter: updatedData }, () => {
+                    console.log("Name gespeichert:", newName);
+                    
+                    // UI Feedback
+                    recruiterNameContainer.classList.add("hidden");
+                    generator.classList.remove("hidden");
+                    matching.classList.remove("hidden");
+                    statusDiv.innerHTML = `<span style="color:green;">✅ Name "${newName}" gespeichert!</span>`;
+                    
+                    // Status nach 3 Sekunden löschen
+                    setTimeout(() => { statusDiv.innerText = ""; }, 3000);
+                });
+            });
+        });
+    }
 
 let lastDetectedPlatform = null;
 
@@ -123,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- KONFIGURATION ---
     const API_URL = "https://xingproxy-842321698577.europe-west1.run.app/xing"; 
-    const COOLDOWN_SECONDS = 30;
+    const COOLDOWN_SECONDS = 35;
 
     // --- GLOBALE VARIABLEN ---
     let cachedProfileData = null; 
@@ -187,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const tab = tabs[0]; 
         tabUrl = tab.url || "";
+       
 
         console.log("Aktive Tab URL:", tabUrl);
 
@@ -194,9 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("🟢 XING Seite erkannt.");
             return await handleXingScrape(tab.id); 
         }
-        else if(tabUrl.includes("linkedin.com/in") || tabUrl.includes("https://www.linkedin.com/talent/hire")) {  
+        else if(tabUrl.includes("linkedin.com/in") || tabUrl.includes("linkedin.com/talent/hire") && tabUrl.includes("/profile/")) {  
             console.log("🔵 LinkedIn Seite erkannt.");
-            return  null; // await handleLinkedInScrape(tab.id); 
+            return  await handleLinkedInScrape(tab.id); 
         }
         else {
             throw new Error("Bitte öffne ein XING oder LinkedIn Profil.");
@@ -221,23 +286,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // async function handleLinkedInScrape(tabId) {
-    //     try {
-    //         return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" }); 
-    //     } catch (error) {
-    //         console.log("LinkedIn Script antwortet nicht. Injiziere...", error);
-    //         try {
-    //             await chrome.scripting.executeScript({
-    //                 target: { tabId: tabId },
-    //                 files: ['content-linkedin.js']
-    //             });
-    //             await new Promise(r => setTimeout(r, 1000));
-    //             return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
-    //         } catch (injectError) {
-    //             throw new Error("Fehler beim Lesen. Bitte Seite (LinkedIn) neu laden (F5) oder prüfen Sie, ob Sie auf der richtigen Seite sind.");
-    //         }
-    //     }
-    // }
+    async function handleLinkedInScrape(tabId) {
+        try {
+            return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" }); 
+        } catch (error) {
+            console.log("LinkedIn Script antwortet nicht. Injiziere...", error);
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tabId },
+                    files: ['content-linkedin.js']
+                });
+                await new Promise(r => setTimeout(r, 1000));
+                return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
+            } catch (injectError) {
+                throw new Error("Fehler beim Lesen. Bitte Seite (LinkedIn) neu laden (F5) oder prüfen Sie, ob Sie auf der richtigen Seite sind.");
+            }
+        }
+    }
 
     // Hilfsfunktion für sauberes Promise
     function sendMessageToTab(tabId, message) {
@@ -266,6 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. EVENT LISTENER (Die Buttons)
     // ==========================================
 // --- A. Job Matching Button (HINTERGRUND VERSION) ---
+
     if (btnFetchJobMatchBtn) {
         btnFetchJobMatchBtn.addEventListener("click", async () => {
             const jobId = job_id_input ? job_id_input.value.trim() : "";
@@ -306,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 3. TRY BLOCK STARTET HIER (Wichtig!)
             try {
-                 let response = null;
+                 
 
                 if(currentUrl.includes("xing.com")) {
                     statusDiv.innerText = "🔍 Scrape XING..."
@@ -315,19 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 else{
 
                     statusDiv.innerText = "🔍 Scrape LinkedIn...";
-
-                    // 2. SCRAPEN ÜBER BACKGROUND WORKER (NEU)
-                // Wir senden eine Nachricht an background.js
-                 response = await new Promise((resolve, reject) => {
-                    chrome.runtime.sendMessage({ 
-                        action: "SCRAPE_IN_BACKGROUND", 
-                        url: currentUrl // Wir nutzen die URL des aktuellen Tabs
-                    }, (res) => {
-                        if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-                        else if (res && res.status === "error") reject(new Error(res.message));
-                        else resolve(res);
-                    });
-                });
+                    response = await scrapeData();
+                    
 
                 }
                 console.log("Gescapte Daten für Job Matching:", response.data);
@@ -375,161 +430,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // // --- B. Nachricht Erstellen Button ---
-    // if (scrapeBtn) {
-    //     scrapeBtn.addEventListener("click", async () => {
-
-    //         const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
-
-    //         // Validierung Job-ID
-    //         if (jobId && !/^\d+$/.test(jobId)) {
-    //             showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-    //             markInputError(jobIdInputMessage);
-    //             setTimeout(() => {
-    //                 clearError();
-    //                 clearInputError(jobIdInputMessage);
-    //             }, 4000);
-    //             return; 
-    //         }
-
-    //         startCooldown();
-
-    //         // ---------------------------------------------------------
-    //         // URL PRÜFEN FÜR KORREKTEN TEXT (Status Update)
-    //         // ---------------------------------------------------------
-    //         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    //         const currentUrl = tabs[0]?.url?.toLowerCase() || "";
-            
-    //         // UI Vorbereitung
-    //         if (currentUrl.includes("xing.com")) {
-    //             statusDiv.innerText = "🔍 Scrape XING...";
-    //         } else if (currentUrl.includes("linkedin.com")) {
-    //             statusDiv.innerText = "🔍 Scrape LinkedIn...";
-    //         } else {
-    //             statusDiv.innerText = "🔍 Lese Profil..."; // Fallback
-    //         }
-    //         // ---------------------------------------------------------
-
-    //         resultContainer.classList.add("hidden");
-    //         if (recreateContainer) recreateContainer.classList.add("hidden");
-    //         const spinnerScrape = scrapeBtn.querySelector(".spinner");
-    //         if (spinnerScrape) spinnerScrape.classList.remove("hidden");
-
-    //         try {
-    //             let finalProfileData;
-
-    //             // 1. Recruiter Daten laden (Funktion steht jetzt ganz oben)
-    //             const { rName, rEmail } = await getRecruiterData();
-    //             console.log("Geladener Recruiter:", rName, rEmail);
-
-    //             // 2. Scrapen
-    //             const response = await scrapeData();
-                
-    //             finalProfileData = response.data;
-    //             cachedProfileData = response.data; // Speichern
-
-    //             console.log("Finale Profildaten für Erstellung:", finalProfileData);
-
-    //             // 3. Payload erstellen
-    //             const payload = {
-    //                 mode: jobId ? "create_with_jobid" : "create",
-    //                 text: finalProfileData,
-    //                 prompt: userPromptInput.value.trim(),
-    //                 tonality: tonalitySelect.value,
-    //                 length: lengthSelect.value,
-    //                 timestamp: new Date().toISOString(),
-    //                 name: rName,
-    //                 email: rEmail
-    //             };
-                
-    //             if (jobId) payload.job_id = jobId;
-
-    //             // Source setzen
-    //             if (currentUrl.includes("linkedin.com")) {
-    //                 payload.source = "linkedin";
-    //             } else {
-    //                 payload.source = "xing";
-    //             }
-
-    //             sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
-
-    //         } catch (err) {
-    //             showError(err.message);
-    //             if (spinnerScrape) spinnerScrape.classList.add("hidden");
-    //         }
-    //     });
-    // }
-
-    // --- B. Nachricht Erstellen Button (HINTERGRUND VERSION) ---
     if (scrapeBtn) {
         scrapeBtn.addEventListener("click", async () => {
 
-            // URL holen
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            const currentUrl = tabs[0]?.url?.toLowerCase() || "";
-
-            if(currentUrl.includes("xing.com/xtm/profiles") || currentUrl.includes("xing.com/xtm/search/profiles") ||
-             currentUrl.includes("linkedin.com/in") || currentUrl.includes("https://www.linkedin.com/talent/hire")) 
-             {
-                
             const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
 
             // Validierung Job-ID
             if (jobId && !/^\d+$/.test(jobId)) {
                 showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+                markInputError(jobIdInputMessage);
+                setTimeout(() => {
+                    clearError();
+                    clearInputError(jobIdInputMessage);
+                }, 4000);
                 return; 
             }
 
             startCooldown();
 
-           
+            // ---------------------------------------------------------
+            // URL PRÜFEN FÜR KORREKTEN TEXT (Status Update)
+            // ---------------------------------------------------------
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const currentUrl = tabs[0]?.url?.toLowerCase() || "";
             
-            // statusDiv.innerText = "⏳ Starte Hintergrund-Scraping...";
-            
+            // UI Vorbereitung
+            if (currentUrl.includes("xing.com")) {
+                statusDiv.innerText = "🔍 Scrape XING...";
+            } else if (currentUrl.includes("linkedin.com")) {
+                statusDiv.innerText = "🔍 Scrape LinkedIn...";
+            } else {
+                statusDiv.innerText = "🔍 Lese Profil..."; // Fallback
+            }
+            // ---------------------------------------------------------
+
             resultContainer.classList.add("hidden");
             if (recreateContainer) recreateContainer.classList.add("hidden");
             const spinnerScrape = scrapeBtn.querySelector(".spinner");
             if (spinnerScrape) spinnerScrape.classList.remove("hidden");
 
-            
-
             try {
-                // 1. Recruiter Daten laden
+                let finalProfileData;
+
+                // 1. Recruiter Daten laden (Funktion steht jetzt ganz oben)
                 const { rName, rEmail } = await getRecruiterData();
+                console.log("Geladener Recruiter:", rName, rEmail);
 
-                let response = null;
+                // 2. Scrapen
+                const response = await scrapeData();
+                
+                finalProfileData = response.data;
+                //cachedProfileData = response.data; // Speichern
+                
 
-                if(currentUrl.includes("xing.com")) {
-                    statusDiv.innerText = "🔍 Scrape XING..."
-                     response = await scrapeData();
-                }
-                else{
+                console.log("Finale Profildaten für Erstellung:", finalProfileData);
 
-                    statusDiv.innerText = "🔍 Scrape LinkedIn...";
-
-                    // 2. SCRAPEN ÜBER BACKGROUND WORKER (NEU)
-                // Wir senden eine Nachricht an background.js
-                 response = await new Promise((resolve, reject) => {
-                    chrome.runtime.sendMessage({ 
-                        action: "SCRAPE_IN_BACKGROUND", 
-                        url: currentUrl // Wir nutzen die URL des aktuellen Tabs
-                    }, (res) => {
-                        if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-                        else if (res && res.status === "error") reject(new Error(res.message));
-                        else resolve(res);
-                    });
-                });
-
-                }
-
-
-            
-                const finalProfileData = response.data;
-                cachedProfileData = response.data;
-
-                console.log("Finale Profildaten (Hintergrund):", finalProfileData);
-                statusDiv.innerText = "✅ Daten erhalten! Generiere...";
-
-                // 3. Payload für KI erstellen (Wie gehabt)
+                // 3. Payload erstellen
                 const payload = {
                     mode: jobId ? "create_with_jobid" : "create",
                     text: finalProfileData,
@@ -543,30 +499,130 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (jobId) payload.job_id = jobId;
 
+                // Source setzen
                 if (currentUrl.includes("linkedin.com")) {
                     payload.source = "linkedin";
                 } else {
                     payload.source = "xing";
                 }
 
-                // An KI senden
                 sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
 
             } catch (err) {
                 showError(err.message);
                 if (spinnerScrape) spinnerScrape.classList.add("hidden");
             }
-             }
-             else {
-                showError("Bitte öffne ein XING oder LinkedIn Profil.");
-                setTimeout(() => { clearError(); }, 4000);
-                return;
-
-             }
-
-
         });
     }
+
+    // // --- B. Nachricht Erstellen Button (HINTERGRUND VERSION) ---
+    // if (scrapeBtn) {
+    //     scrapeBtn.addEventListener("click", async () => {
+
+    //         // URL holen
+    //         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    //         const currentUrl = tabs[0]?.url?.toLowerCase() || "";
+
+    //         if(currentUrl.includes("xing.com/xtm/profiles") || currentUrl.includes("xing.com/xtm/search/profiles") ||
+    //          currentUrl.includes("linkedin.com/in") || currentUrl.includes("https://www.linkedin.com/talent/hire")) 
+    //          {
+                
+    //         const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
+
+    //         // Validierung Job-ID
+    //         if (jobId && !/^\d+$/.test(jobId)) {
+    //             showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
+    //             return; 
+    //         }
+
+    //         startCooldown();
+
+           
+            
+    //         // statusDiv.innerText = "⏳ Starte Hintergrund-Scraping...";
+            
+    //         resultContainer.classList.add("hidden");
+    //         if (recreateContainer) recreateContainer.classList.add("hidden");
+    //         const spinnerScrape = scrapeBtn.querySelector(".spinner");
+    //         if (spinnerScrape) spinnerScrape.classList.remove("hidden");
+
+            
+
+    //         try {
+    //             // 1. Recruiter Daten laden
+    //             const { rName, rEmail } = await getRecruiterData();
+
+    //             let response = null;
+
+    //             if(currentUrl.includes("xing.com")) {
+    //                 statusDiv.innerText = "🔍 Scrape XING..."
+    //                  response = await scrapeData();
+    //             }
+    //             else{
+
+    //                 statusDiv.innerText = "🔍 Scrape LinkedIn...";
+
+    //                 // 2. SCRAPEN ÜBER BACKGROUND WORKER (NEU)
+    //             // Wir senden eine Nachricht an background.js
+    //              response = await new Promise((resolve, reject) => {
+    //                 chrome.runtime.sendMessage({ 
+    //                     action: "SCRAPE_IN_BACKGROUND", 
+    //                     url: currentUrl // Wir nutzen die URL des aktuellen Tabs
+    //                 }, (res) => {
+    //                     if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+    //                     else if (res && res.status === "error") reject(new Error(res.message));
+    //                     else resolve(res);
+    //                 });
+    //             });
+
+    //             }
+
+
+            
+    //             const finalProfileData = response.data;
+    //             cachedProfileData = response.data;
+
+    //             console.log("Finale Profildaten (Hintergrund):", finalProfileData);
+    //             statusDiv.innerText = "✅ Daten erhalten! Generiere...";
+
+    //             // 3. Payload für KI erstellen (Wie gehabt)
+    //             const payload = {
+    //                 mode: jobId ? "create_with_jobid" : "create",
+    //                 text: finalProfileData,
+    //                 prompt: userPromptInput.value.trim(),
+    //                 tonality: tonalitySelect.value,
+    //                 length: lengthSelect.value,
+    //                 timestamp: new Date().toISOString(),
+    //                 name: rName,
+    //                 email: rEmail
+    //             };
+                
+    //             if (jobId) payload.job_id = jobId;
+
+    //             if (currentUrl.includes("linkedin.com")) {
+    //                 payload.source = "linkedin";
+    //             } else {
+    //                 payload.source = "xing";
+    //             }
+
+    //             // An KI senden
+    //             sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
+
+    //         } catch (err) {
+    //             showError(err.message);
+    //             if (spinnerScrape) spinnerScrape.classList.add("hidden");
+    //         }
+    //          }
+    //          else {
+    //             showError("Bitte öffne ein XING oder LinkedIn Profil.");
+    //             setTimeout(() => { clearError(); }, 4000);
+    //             return;
+
+    //          }
+
+
+    //     });
+    // }
 
 
 

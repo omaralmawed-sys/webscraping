@@ -36,13 +36,25 @@ if (!window.__linkedinScraperListenerRegistered) {
     // =========================================================
     // 2. EXPANDER LOGIK
     // =========================================================
-async function expandSections() {
-        console.log("🐢 Starte Expandierung...");
+
+
+    async function expandSections() {
+        console.log("🐢 Starte Expandierung (Langsam & Sicher)...");
+
+        // 1. Container finden (WICHTIG: Damit der Hintergrund nicht springt)
+        const profileContainer = document.querySelector('.profile__main-container') || 
+                                 document.querySelector('#profile-container') || 
+                                 document.body;
+
+        if (!profileContainer) {
+            console.log("⚠️ Kein Profil-Container gefunden.");
+            return;
+        }
 
         // --- A. LISTEN & DETAILS ---
         const listSelectors = [
             'button[aria-label*="Weitere Zertifikate anzeigen"][aria-expanded="false"]',
-            'button[aria-label*="Weitere Positionen mit Berufserfahrung anzeigen"][aria-expanded="false"]', // <--- WICHTIG
+            'button[aria-label*="Weitere Positionen mit Berufserfahrung anzeigen"][aria-expanded="false"]',
             'button[aria-label*="Details anzeigen"][aria-expanded="false"]',
             'button[aria-label*="Berufserfahrung anzeigen"][aria-expanded="false"]',
             'button[aria-label*="Ausbildung anzeigen"][aria-expanded="false"]',
@@ -52,99 +64,89 @@ async function expandSections() {
             'button[data-test-decorated-line-clamp-see-more-button][aria-expanded="false"]'
         ];
 
-        const listButtons = document.querySelectorAll(listSelectors.join(', '));
+        // Nur Buttons im Container suchen
+        const listButtons = profileContainer.querySelectorAll(listSelectors.join(', '));
 
         if (listButtons.length > 0) {
             for (const btn of listButtons) {
-                if (btn.isConnected && btn.offsetParent !== null) {
+                if (btn.offsetParent !== null) {
                     
                     const label = (btn.getAttribute("aria-label") || btn.innerText || "").toLowerCase();
                     const id = (btn.id || "").toLowerCase();
                     const visibleText = btn.innerText.toLowerCase();
 
-                    // --- FILTER (Buttons ignorieren) ---
+                    // Filter
                     if (id.includes("expand-less") || label.includes("weniger") || label.includes("less")) continue; 
                     if (label.includes("kenntnisse") || label.includes("skills")) continue; 
-                    
-                    // Interessen ignorieren
                     if (label.includes("interessen") || label.includes("interests")) continue;
+                    if (label.includes("details anzeigen") || visibleText.includes("details anzeigen")) continue;
+
                     const container = btn.closest('.expandable-list');
                     if (container) {
                         const title = container.querySelector('[data-test-expandable-list-title]');
                         if (title && title.innerText.toLowerCase().includes("interessen")) continue;
                     }
 
-                    // Details anzeigen ignorieren
-                    if (label.includes("details anzeigen") || visibleText.includes("details anzeigen")) continue;
-                    // ----------------------------------
-
                     try {
-                        console.log("   👉 Klicke (Stufe 1):", label.substring(0, 40));
-                        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        await randomWait(300, 600); 
-                        btn.click();
-                        await randomWait(1500, 2500); 
-
-                        // --- SPEZIAL: ZWEITE RUNDE (DOUBLE TRIGGER) ---
+                        // 1. SANFT SCROLLEN
+                        // 'smooth' macht es weich, 'nearest' verhindert große Sprünge
+                        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         
-                        // Fall 1: Zertifikate nachladen
+                        // 2. LÄNGER WARTEN (Damit das Scrollen fertig ist vor dem Klick)
+                        await randomWait(600, 900); 
+                        
+                        // 3. KLICKEN
+                        btn.click();
+                        
+                        // 4. WARTEN (Damit der Inhalt nachlädt)
+                        await randomWait(800, 1500); 
+
+                        // --- ZWEITE RUNDE (Falls nötig) ---
                         if (label.includes("zertifikate")) {
-                            const certBtnRound2 = document.querySelector('button[aria-label*="Weitere Zertifikate anzeigen"][aria-expanded="false"]');
-                            if (certBtnRound2 && certBtnRound2.offsetParent !== null) {
-                                console.log("   🔄 Klicke Zertifikate ein 2. Mal!");
-                                certBtnRound2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            const certBtnRound2 = profileContainer.querySelector('button[aria-label*="Weitere Zertifikate anzeigen"][aria-expanded="false"]');
+                            if (certBtnRound2) {
+                                certBtnRound2.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                                 await randomWait(500, 800);
                                 certBtnRound2.click();
-                                await randomWait(1500, 2500);
+                                await randomWait(800, 1200);
                             }
                         }
 
-                        // Fall 2: Berufserfahrung nachladen (NEU)
                         if (label.includes("berufserfahrung") || label.includes("experience")) {
-                            const expBtnRound2 = document.querySelector('button[aria-label*="Weitere Positionen mit Berufserfahrung anzeigen"][aria-expanded="false"]');
-                            if (expBtnRound2 && expBtnRound2.offsetParent !== null) {
-                                console.log("   🔄 Klicke Berufserfahrung ein 2. Mal!");
-                                expBtnRound2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            const expBtnRound2 = profileContainer.querySelector('button[aria-label*="Weitere Positionen mit Berufserfahrung anzeigen"][aria-expanded="false"]');
+                            if (expBtnRound2) {
+                                expBtnRound2.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                                 await randomWait(500, 800);
                                 expBtnRound2.click();
-                                await randomWait(1500, 2500);
+                                await randomWait(800, 1200);
                             }
                         }
-                        // ----------------------------------------------
 
-                    } catch(e) { console.log("Fehler beim Klicken:", e); }
+                    } catch(e) { console.log("Klick-Fehler:", e); }
                 }
             }
         }
 
         // --- B. ZUSAMMENFASSUNG ---
-        const summaryButtons = document.querySelectorAll(
+        const summaryButtons = profileContainer.querySelectorAll(
             '.inline-show-more-text__button, [aria-label*="Zusammenfassung"] button, #line-clamp-show-more-button'
         );
         for (const btn of summaryButtons) {
-            if (btn.isConnected && btn.offsetParent !== null) {
-                try { btn.click(); await randomWait(100, 200); } catch(e) {}
-            }
+            try { 
+                btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                await randomWait(300, 500); // Kurze Pause
+                btn.click(); 
+                await randomWait(200, 400); 
+            } catch(e) {}
         }
 
-        // --- C. ACCORDIONS ---
-        const accordionButtons = document.querySelectorAll('button.accordion-header__button[aria-expanded="false"]');
-        for (const btn of accordionButtons) {
-            const txt = (btn.innerText + (btn.getAttribute("aria-label")||"")).toLowerCase();
-            const isRelevant = txt.includes("kenntnisse") || txt.includes("skills") || 
-                               txt.includes("jobangebote") || txt.includes("offen für") || 
-                               txt.includes("sprachen");
-
-            if (isRelevant && btn.isConnected) {
-                try {
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    btn.click();
-                    await randomWait(500, 800);
-                } catch(e) {}
-            }
+        // --- RESET ---
+        console.log("✅ Fertig. Scrolle sanft nach oben...");
+        if (profileContainer.scrollTo) {
+            profileContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            profileContainer.scrollTop = 0;
         }
-
-        console.log("✅ Expandierung fertig.");
         await randomWait(500, 1000); 
     }
 
@@ -155,7 +157,7 @@ async function expandSections() {
         await expandSections();
 
         // Header
-        const name = safeText("h1") || safeText(".artdeco-entity-lockup__title");
+        const name =  safeText(".artdeco-entity-lockup__title.ember-view");
         const headline = safeText("[data-test-row-lockup-headline]") || safeText(".artdeco-entity-lockup__subtitle");
         const location = safeText("[data-test-row-lockup-location]") || safeText(".artdeco-entity-lockup__metadata div:first-child");
 
@@ -201,83 +203,73 @@ async function expandSections() {
             }
         }
 
-        const openToWork = safeTextAll(".accordion-body__body li, .accordion-body__body span");
-
-        // --- ERFAHRUNG (MULTI-ROLE LOGIK) ---
+   // =========================================================
+        // 4. ERFAHRUNG (EXPERIENCE) - FINAL DIAMOND V5 LOGIC
+        // =========================================================
         let experience = [];
 
-        // 1. Gruppierte Positionen (Firma mit mehreren Rollen, z.B. Freshfields)
-        const groupedItems = document.querySelectorAll("[data-test-group-position-list-container]");
-        groupedItems.forEach(group => {
-            const company = safeText("[data-test-grouped-position-entity-company-name]", group);
+        // --- TEIL A: GRUPPIERTE POSITIONEN (Mehrere Jobs bei einer Firma) ---
+        // Suche nach Containern, die eine Gruppe von Jobs enthalten
+        const groupedCompanyContainers = document.querySelectorAll("[data-test-group-position-list-container]");
+        
+        groupedCompanyContainers.forEach(group => {
+            // Firmenname steht ganz oben im Gruppen-Container
+            const companyName = safeText("[data-test-grouped-position-entity-company-name]", group);
             
-            // Finde alle Rollen-Header innerhalb dieser Firma
-            const roles = group.querySelectorAll("[data-test-grouped-position-entity-metadata-container]");
-
-            roles.forEach(roleMetadata => {
-                const title = safeText("[data-test-grouped-position-entity-title]", roleMetadata);
-                const date = safeText("[data-test-grouped-position-entity-date-range]", roleMetadata);
-                const location = safeText("[data-test-grouped-position-entity-location]", roleMetadata);
+            // Suche den Wrapper für die Job-Liste innerhalb der Gruppe
+            const jobList = group.querySelector("[data-test-position-list]");
+            
+            if (jobList) {
+                // Iteriere über jeden Job-Eintrag (metadata-container)
+                const jobRows = jobList.querySelectorAll("[data-test-grouped-position-entity-metadata-container]");
                 
-                // Wir suchen die Beschreibung und Skills in den Elementen DANACH (Siblings)
-                // WICHTIG: Wir stoppen, sobald wir auf den nächsten Header (metadata-container) stoßen
-                let description = "";
-                let roleSkills = "";
-                let nextElem = roleMetadata.nextElementSibling;
-                
-                while (nextElem && !nextElem.matches("[data-test-grouped-position-entity-metadata-container]")) {
+                jobRows.forEach(row => {
+                    const title = safeText("[data-test-grouped-position-entity-title]", row);
+                    const date = safeText("[data-test-grouped-position-entity-date-range]", row);
+                    const loc = safeText("[data-test-grouped-position-entity-location]", row);
                     
-                    // Beschreibung gefunden? (Der Container enthält oft <h3> Bulletpoints)
-                    const descContainer = nextElem.querySelector("[data-test-grouped-position-entity-description]");
-                    if (descContainer) {
-                        description = cleanText(descContainer.innerText);
+                    // WICHTIG: Beschreibung & Skills sind Kindelemte von 'row'
+                    // (in einem verschachtelten div 'grouped-position-entity__right-content')
+                    const description = safeText("[data-test-grouped-position-entity-description]", row);
+                    const jobSkills = safeTextAll("[data-test-position-skill-item]", row).join(", ");
+
+                    if (title) {
+                        let entry = `${title} bei ${companyName}`;
+                        if (date) entry += ` [${date}]`;
+                        if (loc) entry += ` (${loc})`;
+                        if (description) entry += `\n   📝 Details: ${description}`;
+                        if (jobSkills) entry += `\n   💡 Skills: ${jobSkills}`;
+                        
+                        experience.push(entry);
                     }
-
-                    // Skills gefunden? (NEU: Suche nach dem korrekten Skills-Container im Sibling)
-                    const skillsContainer = nextElem.querySelector("[data-test-position-skills]");
-                    if (skillsContainer) {
-                        roleSkills = safeTextAll("[data-test-position-skill-item]", skillsContainer).join(", ");
-                    }
-
-                    nextElem = nextElem.nextElementSibling;
-                }
-
-                if (title) {
-                    let text = `${title} bei ${company}`;
-                    if (date) text += ` [${date}]`;
-                    if (location) text += ` (${location})`;
-                    if (description) text += `\n   📝 Details: ${description}`;
-                    if (roleSkills) text += `\n   💡 Skills: ${roleSkills}`;
-                    experience.push(text);
-                }
-            });
+                });
+            }
         });
 
-        // 2. Einzelne Positionen (Standard, z.B. Capricorn)
-        const singleItems = document.querySelectorAll("[data-test-position-list-container]");
-        singleItems.forEach(item => {
-            const title = safeText("[data-test-position-entity-title]", item);
-            const company = safeText("[data-test-position-entity-company-name]", item);
-            const date = safeText("[data-test-position-entity-date-range]", item);
-            const location = safeText("[data-test-position-entity-location]", item);
+        // --- TEIL B: EINZELNE POSITIONEN (Standard) ---
+        const singlePositionContainers = document.querySelectorAll("[data-test-position-list-container]");
+        
+        singlePositionContainers.forEach(item => {
+            // Prüfen, ob Firmenname direkt im Item ist (Zeichen für Einzeljob)
+            const companyEl = item.querySelector("[data-test-position-entity-company-name]");
             
-            // Beschreibung (Direkt im Item)
-            const description = safeText("[data-test-position-entity-description]", item);
-            
-            // Skills (Direkt im Item)
-            let roleSkills = "";
-            const skillsContainer = item.querySelector("[data-test-position-skills]");
-            if (skillsContainer) {
-                roleSkills = safeTextAll("[data-test-position-skill-item]", skillsContainer).join(", ");
-            }
+            if (companyEl) {
+                const title = safeText("[data-test-position-entity-title]", item);
+                const company = cleanText(companyEl.innerText);
+                const date = safeText("[data-test-position-entity-date-range]", item);
+                const location = safeText("[data-test-position-entity-location]", item);
+                const description = safeText("[data-test-position-entity-description]", item);
+                const jobSkills = safeTextAll("[data-test-position-skill-item]", item).join(", ");
 
-            if (title) {
-                let text = `${title} bei ${company}`;
-                if (date) text += ` [${date}]`;
-                if (location) text += ` (${location})`;
-                if (description) text += `\n   📝 Details: ${description}`;
-                if (roleSkills) text += `\n   💡 Skills: ${roleSkills}`;
-                experience.push(text);
+                if (title) {
+                    let entry = `${title} bei ${company}`;
+                    if (date) entry += ` [${date}]`;
+                    if (location) entry += ` (${location})`;
+                    if (description) entry += `\n   📝 Details: ${description}`;
+                    if (jobSkills) entry += `\n   💡 Skills: ${jobSkills}`;
+                    
+                    experience.push(entry);
+                }
             }
         });
 

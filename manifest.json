@@ -8,7 +8,7 @@
     "https://xingproxy-842321698577.europe-west1.run.app/*", 
     "https://www.xing.com/*", 
     "https://www.linkedin.com/*",
-    "https://www.linkedin.com/talent/hire/*"
+    "https://www.linkedin.com/talent/hire/*/manage/all/profile/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -28,7 +28,7 @@
   "content_scripts": [  
     {
       "matches": ["https://www.xing.com/xtm/search/profiles", "https://*.xing.com/*", "http://*.linkedin.com/in/*", "https://*.linkedin.com/in/*",
-       "https://www.linkedin.com/talent/hire/*"],
+       "https://www.linkedin.com/talent/hire/*/manage/all/profile/*"],
       "js": ["content-xing.js","content-linkedin.js"]
     }
   ]
