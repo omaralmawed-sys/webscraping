@@ -115,6 +115,10 @@ async function applyPlatformStyles() {
         } else if (url.includes('xing.com')) {
             currentPlatform = 'xing';
         }
+        else
+        {            currentPlatform = 'unknown';
+            
+        }
 
         // Styles auf den Body anwenden
         const body = document.body;
