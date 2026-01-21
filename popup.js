@@ -110,15 +110,13 @@ async function applyPlatformStyles() {
 
         let currentPlatform = 'unknown'; // Standardmäßig auf Unbekannt setzen
 
+        // Plattform ermitteln
         if (url.includes('linkedin.com')) {
             currentPlatform = 'linkedin';
         } else if (url.includes('xing.com')) {
             currentPlatform = 'xing';
         }
-        else
-        {            currentPlatform = 'unknown';
-            
-        }
+        // Das leere 'else' habe ich entfernt, da currentPlatform oben schon 'unknown' ist.
 
         // Styles auf den Body anwenden
         const body = document.body;
@@ -129,8 +127,9 @@ async function applyPlatformStyles() {
             body.classList.add(config.class);
             body.style.setProperty('--platform-color', config.color);
 
-            // Benachrichtigung nur anzeigen, wenn sich die Plattform geändert hat
-            if (lastDetectedPlatform !== currentPlatform && currentPlatform !== 'unknown') {
+            // KORREKTUR: Die Bedingung '&& currentPlatform !== "unknown"' wurde entfernt!
+            // Jetzt wird auch bei unbekannten Seiten eine Benachrichtigung gezeigt.
+            if (lastDetectedPlatform !== currentPlatform) {
                 animatePlatformSwitch(config.name, config.color);
                 lastDetectedPlatform = currentPlatform;
             }
