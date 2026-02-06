@@ -233,6 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBackGen = document.getElementById("backFromNachrichtGenerator");
     const btnSettings = document.getElementById("settings-btn");
     const btnBackSettings = document.getElementById("backFromSettings");
+    const btnBackKandidat = document.getElementById("backFromSection-kandidat");
+    const btnBackKontakt = document.getElementById("backFromSection-kontakt");
 
     // Generator Tool
     const scrapeBtn = document.getElementById("scrapeBtn");
@@ -541,115 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // // --- B. Nachricht Erstellen Button (HINTERGRUND VERSION) ---
-    // if (scrapeBtn) {
-    //     scrapeBtn.addEventListener("click", async () => {
-
-    //         // URL holen
-    //         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    //         const currentUrl = tabs[0]?.url?.toLowerCase() || "";
-
-    //         if(currentUrl.includes("xing.com/xtm/profiles") || currentUrl.includes("xing.com/xtm/search/profiles") ||
-    //          currentUrl.includes("linkedin.com/in") || currentUrl.includes("https://www.linkedin.com/talent/hire")) 
-    //          {
-                
-    //         const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
-
-    //         // Validierung Job-ID
-    //         if (jobId && !/^\d+$/.test(jobId)) {
-    //             showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-    //             return; 
-    //         }
-
-    //         startCooldown();
-
-           
-            
-    //         // statusDiv.innerText = "⏳ Starte Hintergrund-Scraping...";
-            
-    //         resultContainer.classList.add("hidden");
-    //         if (recreateContainer) recreateContainer.classList.add("hidden");
-    //         const spinnerScrape = scrapeBtn.querySelector(".spinner");
-    //         if (spinnerScrape) spinnerScrape.classList.remove("hidden");
-
-            
-
-    //         try {
-    //             // 1. Recruiter Daten laden
-    //             const { rName, rEmail } = await getRecruiterData();
-
-    //             let response = null;
-
-    //             if(currentUrl.includes("xing.com")) {
-    //                 statusDiv.innerText = "🔍 Scrape XING..."
-    //                  response = await scrapeData();
-    //             }
-    //             else{
-
-    //                 statusDiv.innerText = "🔍 Scrape LinkedIn...";
-
-    //                 // 2. SCRAPEN ÜBER BACKGROUND WORKER (NEU)
-    //             // Wir senden eine Nachricht an background.js
-    //              response = await new Promise((resolve, reject) => {
-    //                 chrome.runtime.sendMessage({ 
-    //                     action: "SCRAPE_IN_BACKGROUND", 
-    //                     url: currentUrl // Wir nutzen die URL des aktuellen Tabs
-    //                 }, (res) => {
-    //                     if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-    //                     else if (res && res.status === "error") reject(new Error(res.message));
-    //                     else resolve(res);
-    //                 });
-    //             });
-
-    //             }
-
-
-            
-    //             const finalProfileData = response.data;
-    //             cachedProfileData = response.data;
-
-    //             console.log("Finale Profildaten (Hintergrund):", finalProfileData);
-    //             statusDiv.innerText = "✅ Daten erhalten! Generiere...";
-
-    //             // 3. Payload für KI erstellen (Wie gehabt)
-    //             const payload = {
-    //                 mode: jobId ? "create_with_jobid" : "create",
-    //                 text: finalProfileData,
-    //                 prompt: userPromptInput.value.trim(),
-    //                 tonality: tonalitySelect.value,
-    //                 length: lengthSelect.value,
-    //                 timestamp: new Date().toISOString(),
-    //                 name: rName,
-    //                 email: rEmail
-    //             };
-                
-    //             if (jobId) payload.job_id = jobId;
-
-    //             if (currentUrl.includes("linkedin.com")) {
-    //                 payload.source = "linkedin";
-    //             } else {
-    //                 payload.source = "xing";
-    //             }
-
-    //             // An KI senden
-    //             sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
-
-    //         } catch (err) {
-    //             showError(err.message);
-    //             if (spinnerScrape) spinnerScrape.classList.add("hidden");
-    //         }
-    //          }
-    //          else {
-    //             showError("Bitte öffne ein XING oder LinkedIn Profil.");
-    //             setTimeout(() => { clearError(); }, 4000);
-    //             return;
-
-    //          }
-
-
-    //     });
-    // }
-
 
 
     // --- C. Nachricht Anpassen (Rewrite) ---
@@ -950,90 +843,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
     
 // Elemente erst abrufen, wenn das DOM geladen ist
-    const fileInput = document.getElementById('resume_upload');
-    const fileNameDisplay = document.getElementById('file-name-display');
-    const fileInfoContainer = document.getElementById('file-info-container');
-    const removeFileBtn = document.getElementById('removeFileBtn');
-    const saveCandidateBtn = document.getElementById('saveCandidateBtn');
-    const dropArea = document.getElementById('drop-area');
+const fileInput = document.getElementById('resume_upload');
+ const fileNameDisplay = document.getElementById('file-name-display');
+const fileInfoContainer = document.getElementById('file-info-container');
+ const removeFileBtn = document.getElementById('removeFileBtn');
+ const saveCandidateBtn = document.getElementById('saveCandidateBtn');
+ const dropArea = document.getElementById('drop-area');
 
-    // Funktion zum Zurücksetzen der Upload-Ansicht
-    function resetUpload() {
-        if (fileInput) fileInput.value = ""; 
-        if (fileInfoContainer) {
-            fileInfoContainer.classList.add('hidden');
-            fileInfoContainer.style.display = "none"; // Sicherstellen, dass es weg ist
-        }
-        if (saveCandidateBtn) saveCandidateBtn.classList.add('hidden');
-        
-        if (dropArea) {
-            dropArea.style.borderColor = ""; 
-            dropArea.style.backgroundColor = "";
-        }
-    }
+ // Funktion zum Zurücksetzen der Upload-Ansicht
+ function resetUpload() {
+ if (fileInput) fileInput.value = ""; 
+ if (fileInfoContainer) {
+fileInfoContainer.classList.add('hidden');
+ fileInfoContainer.style.display = "none"; // Sicherstellen, dass es weg ist
+}
+if (saveCandidateBtn) saveCandidateBtn.classList.add('hidden');
 
-    // 1. Datei-Auswahl
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            if (this.files && this.files.length > 0) {
-                fileNameDisplay.textContent = "📄 " + this.files[0].name;
-                fileInfoContainer.classList.remove('hidden');
-                fileInfoContainer.style.display = "flex"; // Anzeigen als Flexbox
-                saveCandidateBtn.classList.remove('hidden');
+ if (dropArea) {
+ dropArea.style.borderColor = ""; 
+dropArea.style.backgroundColor = "";
+}
+ }
 
-                // UI Feedback
-                dropArea.style.borderColor = "#28a745";
-                dropArea.style.backgroundColor = "#f6fff8";
-            }
-        });
-    }
+ // 1. Datei-Auswahl
+ if (fileInput) {
+fileInput.addEventListener('change', function() {
+if (this.files && this.files.length > 0) {
+ fileNameDisplay.textContent = "📄 " + this.files[0].name;
+ fileInfoContainer.classList.remove('hidden');
+fileInfoContainer.style.display = "flex"; // Anzeigen als Flexbox
+ saveCandidateBtn.classList.remove('hidden');
 
-    // 2. Datei entfernen
-    if (removeFileBtn) {
-        removeFileBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            resetUpload();
-        });
-    }
+ // UI Feedback
+dropArea.style.borderColor = "#28a745";
+ dropArea.style.backgroundColor = "#f6fff8";
+ }
+});
+ }
 
-    // Hilfsfunktion: Base64
-    function getBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
-    }
+ // 2. Datei entfernen
+if (removeFileBtn) {
+ removeFileBtn.addEventListener('click', (e) => {
+ e.preventDefault();
+ resetUpload();
+ });
+ }
 
-    // 3. Datei an n8n senden
-    if (saveCandidateBtn) {
-        saveCandidateBtn.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) return;
+ // Hilfsfunktion: Base64
+function getBase64(file) {
+return new Promise((resolve, reject) => {
+ const reader = new FileReader();
+reader.readAsDataURL(file);
+ reader.onload = () => resolve(reader.result.split(',')[1]);
+ reader.onerror = error => reject(error);
+ });
+ }
 
-            saveCandidateBtn.disabled = true;
-            saveCandidateBtn.textContent = "Sende Datei... ⏳";
+// 3. Datei an n8n senden
+ if (saveCandidateBtn) {
+ saveCandidateBtn.addEventListener('click', async () => {
+ const file = fileInput.files[0];
+ if (!file) return;
 
-            try {
-                const fileBase64 = await getBase64(file);
+ saveCandidateBtn.disabled = true;
+ saveCandidateBtn.textContent = "Sende Datei... ⏳";
+
+ try {
+ const fileBase64 = await getBase64(file);
 
             console.log("Sende Datei an n8n:",fileBase64);
 
-                // API_URL muss hier definiert sein oder von oben kommen
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fileName: file.name,
-                        data: fileBase64,
-                        sentAt: new Date().toISOString(),
+ // API_URL muss hier definiert sein oder von oben kommen
+ const response = await fetch(API_URL, {
+ method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+ fileName: file.name,
+ data: fileBase64,
+ sentAt: new Date().toISOString(),
                     source: "resume_upload"
 
-                    })
-                });
+ })
+});
 
-                if (response.ok) {
+ if (response.ok) {
                 // 1. Sofort Feedback geben
                 statusDiv.innerText = "Datei erfolgreich übertragen! ✅";
 
@@ -1043,17 +936,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     resetUpload();
                 }, 3000);
             } else {
-                    
                     statusDiv.innerText = "Fehler beim Senden der Datei! ❌";
-                }
-            } catch (error) {
-                console.error("Upload Fehler:", error);
-            } finally {
-                saveCandidateBtn.disabled = false;
-                saveCandidateBtn.textContent = "Kandidat anlegen ➕";
-            }
-        });
-    }
+}
+} catch (error) {
+ console.error("Upload Fehler:", error);
+} finally {
+ saveCandidateBtn.disabled = false;
+ saveCandidateBtn.textContent = "Kandidat anlegen ➕";
+ }
+});
+}
+
+
+// Sektionen (Diese behandeln wir jetzt wie eigene Views)
+const sectionKandidat = document.getElementById("section-kandidat");
+const sectionKontakt = document.getElementById("section-kontakt");
+
+// Buttons im Hauptmenü
+const btnTabKandidat = document.getElementById("tab-kandidat");
+const btnTabKontakt = document.getElementById("tab-kontakt");
+
+// --- 3. EVENT LISTENER ---
+
+// Wenn man auf "Kandidat anlegen" klickt
+if (btnTabKandidat) {
+    btnTabKandidat.addEventListener("click", () => {
+        switchView(sectionKandidat);
+    });
+}
+
+// Wenn man auf "Kontakt anlegen" klickt
+if (btnTabKontakt) {
+    btnTabKontakt.addEventListener("click", () => {
+        switchView(sectionKontakt);
+    });
+}
 
 
 
@@ -1114,13 +1031,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. NAVIGATION & HELPER
     // ==========================================
 
-    function switchView(targetView) {
-        viewMenu.classList.add("hidden");
-        viewGenerator.classList.add("hidden");
-        viewJobMatching.classList.add("hidden");
-        if (viewSettings) viewSettings.classList.add("hidden");
+// --- 2. DIE SWITCH-FUNKTION (Erweitert) ---
+function switchView(targetView) {
+    // Liste ALLER möglichen Ansichten/Sektionen
+    const allViews = [
+        viewMenu, viewGenerator, viewJobMatching, 
+        viewSettings, sectionKandidat, sectionKontakt
+    ];
+
+    allViews.forEach(v => {
+        if (v) v.classList.add("hidden");
+    });
+
+    if (targetView) {
         targetView.classList.remove("hidden");
     }
+}
 
     if (btnToGen) btnToGen.addEventListener("click", () => switchView(viewGenerator));
     if (btnToMatch) btnToMatch.addEventListener("click", () => switchView(viewJobMatching));
@@ -1128,6 +1054,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnBackGen) btnBackGen.addEventListener("click", () => switchView(viewMenu));
     if (btnSettings && viewSettings) btnSettings.addEventListener("click", () => switchView(viewSettings));
     if (btnBackSettings) btnBackSettings.addEventListener("click", () => switchView(viewMenu));
+    if(btnBackKandidat) btnBackKandidat.addEventListener("click", () => switchView(viewMenu));
+    if(btnBackKontakt) btnBackKontakt.addEventListener("click", () => switchView(viewMenu));
 
     function startCooldown() {
         const now = Date.now();

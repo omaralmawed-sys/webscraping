@@ -29,12 +29,42 @@
 
     <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
 
-    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <button id="tab-kandidat" class="secondary-btn" style="flex: 1; border-bottom: 3px solid var(--platform-primary);">Kandidat anlegen</button>
-        <button id="tab-kontakt" class="secondary-btn" style="flex: 1;">Kontakt anlegen</button>
-    </div>
+    
+    <button id="tab-kandidat" class="main-btn" style="flex: 1; border-bottom: 3px solid var(--platform-primary);">Kandidat anlegen</button>
+    <button id="tab-kontakt" class="main-btn" style="flex: 1;">Kontakt anlegen</button>
+  
+</div>
 
-    <div id="section-kandidat" class="upload-section hidden">
+
+<div id="section-kontakt" class="hidden" style="animation: fadeIn 0.3s ease;">
+      <button id="backFromSection-kontakt" class="nav-back-btn">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Zurück zum Menü
+    </button>
+  
+  <div class="card">
+        <div class="setting-group" style="margin-bottom: 10px;">
+            <label>Name des Kontakts</label>
+            <input type="text" id="contact_fullname" placeholder="Vollständiger Name">
+        </div>
+        <div class="setting-group" style="margin-bottom: 10px;">
+            <label>Jobtitel</label>
+            <input type="text" id="contact_jobtitle" placeholder="z.B. IT Manager">
+        </div>
+        <div class="setting-group" style="margin-bottom: 10px;">
+            <label>Profilbild URL</label>
+            <input type="text" id="contact_image" placeholder="https://...">
+        </div>
+        <button id="saveContactBtn" class="main-btn" style="background-color: #026466;">Kontakt anlegen 👤</button>
+    </div>
+</div>
+
+<div id="section-kandidat" class="upload-section hidden">
+    <button id="backFromSection-kandidat" class="nav-back-btn">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Zurück zum Menü
+    </button>
+  <div class="card">
         <label for="resume_upload" class="drop-zone" id="drop-area">
             <div class="drop-zone-content">
                 <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -53,23 +83,7 @@
         </div>
         <button id="saveCandidateBtn" class="main-btn hidden" style="margin-top: 15px; background-color: #026466;">Kandidat anlegen ➕</button>
     </div>
-
-    <div id="section-kontakt" class="hidden" style="animation: fadeIn 0.3s ease;">
-        <div class="setting-group" style="margin-bottom: 10px;">
-            <label>Name des Kontakts</label>
-            <input type="text" id="contact_fullname" placeholder="Vollständiger Name">
-        </div>
-        <div class="setting-group" style="margin-bottom: 10px;">
-            <label>Jobtitel</label>
-            <input type="text" id="contact_jobtitle" placeholder="z.B. IT Manager">
-        </div>
-        <div class="setting-group" style="margin-bottom: 10px;">
-            <label>Profilbild URL</label>
-            <input type="text" id="contact_image" placeholder="https://...">
-        </div>
-        <button id="saveContactBtn" class="main-btn" style="background-color: #026466;">Kontakt anlegen 👤</button>
-    </div>
-</div>
+  </div>
 
   <div id="view-settings" class="hidden">
     <button id="backFromSettings" class="nav-back-btn">
