@@ -2,214 +2,119 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
   <title>Recruiting Tools✨</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <header>
-    <h2>Recruiting Tools✨</h2>
+  <header style="display: flex; justify-content: space-between; align-items: center; padding: 15px;">
+    <h2 style="margin: 0;">Recruiting Tools✨</h2>
+    <svg id="settings-btn" class="settings-icon-header" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor: pointer;">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
   </header>
-
-
 
   <div id="view-menu" class="card">
     <p style="text-align:center; margin-bottom:20px; font-size: 18px; font-weight:bold ; color: #333;">Wähle ein Tool:</p>
 
-           <div id="recruiter-name-container" class="setting-group hidden" style="margin-bottom: 15px;">
-            <label for="user_name_input" style="font-weight:bold; color:#d9534f;">⚠️ Name fehlt. Bitte eingeben:</label>
-            <input type="text" id="user_name_input" placeholder="Ihr Name (z.B. Max Mustermann)">
-            <button id="saveUserNameBtn" class="secondary-btn" style="margin-top: 10px;">
-              Speichern Name
-            </button>
-        </div>
-
-
-    <button id="nav-to-generator" class="main-btn">
-      Nachricht Generator ✉️
-    </button>
-
-    <button id="nav-to-job-matching" class="main-btn">
-       Xing/linkedin Job Matching 🛠️
-    </button>
-
-
-    
-<div class="upload-section">
-    <label for="resume_upload" class="drop-zone" id="drop-area">
-        <div class="drop-zone-content">
-            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <span class="drop-zone-title">LEBENSLAUF HOCHLADEN</span>
-            <span class="drop-zone-desc">Klicken oder Datei hierher ziehen</span>
-        </div>
-        <input type="file" id="resume_upload" accept=".pdf,.docx,.doc" hidden>
-    </label>
-
-    <div id="file-info-container" class="file-info hidden" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
-        <span id="file-name-display"></span>
-        <button id="removeFileBtn" style="background: none; border: none; color: #d9534f; cursor: pointer; font-size: 16px;" title="Datei entfernen">
-            ✖
-        </button>
+    <div id="recruiter-name-container" class="setting-group hidden" style="margin-bottom: 15px;">
+        <label for="user_name_input" style="font-weight:bold; color:#d9534f;">⚠️ Name fehlt. Bitte eingeben:</label>
+        <input type="text" id="user_name_input" placeholder="Ihr Name (z.B. Max Mustermann)">
+        <button id="saveUserNameBtn" class="secondary-btn" style="margin-top: 10px;">Speichern Name</button>
     </div>
-    
-    <button id="saveCandidateBtn" class="main-btn primary-action hidden" style="margin-top: 15px; background-color: #026466; width: 100%;">
-        Kandidat anlegen ➕
-    </button>
-</div>
 
+    <button id="nav-to-generator" class="main-btn">Nachricht Generator ✉️</button>
+    <button id="nav-to-job-matching" class="main-btn">Xing/linkedin Job Matching 🛠️</button>
+
+    <div class="upload-section">
+        <label for="resume_upload" class="drop-zone" id="drop-area">
+            <div class="drop-zone-content">
+                <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span class="drop-zone-title">LEBENSLAUF HOCHLADEN</span>
+                <span class="drop-zone-desc">Klicken oder Datei hierher ziehen</span>
+            </div>
+            <input type="file" id="resume_upload" accept=".pdf,.docx,.doc" hidden>
+        </label>
+        <div id="file-info-container" class="file-info hidden" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+            <span id="file-name-display"></span>
+            <button id="removeFileBtn" style="background: none; border: none; color: #d9534f; cursor: pointer; font-size: 16px;">✖</button>
+        </div>
+        <button id="saveCandidateBtn" class="main-btn primary-action hidden" style="margin-top: 15px; background-color: #026466; width: 100%;">Kandidat anlegen ➕</button>
+    </div>
   </div>
 
+  <div id="view-settings" class="hidden">
+    <button id="backFromSettings" class="nav-back-btn">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Zurück zum Menü
+    </button>
+    <div class="card">
+        <h3 style="margin-top:0; color:#333;">Einstellungen ⚙️</h3>
+        <div class="setting-group" style="margin-bottom: 15px;">
+            <label for="settings_name_input" style="font-weight:bold; color:#555;">👤 Ihr Name</label>
+            <p style="font-size:12px; color:#888; margin-bottom:8px;">Dieser Name wird für die Signatur verwendet.</p>
+            <input type="text" id="settings_name_input" placeholder="z.B. Max Mustermann">
+            <button id="saveSettingsNameBtn" class="secondary-btn" style="margin-top: 15px; width: 100%;">Speichern</button>
+        </div>
+    </div>
+  </div>
 
-<div id="job-matching-container" class="hidden">
-    
+  <div id="job-matching-container" class="hidden">
     <button id="backFromJobMatching" class="nav-back-btn">
       <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
       Zurück zum Menü
     </button>
-
     <div class="card">
       <h3 style="margin-top:0; color:#026466;">Job Matching 🛠️</h3>
-      <p style="font-size:12px; color:#666; margin-bottom:15px;">
-        Gib die Job-ID ein, um das Profil mit der Stelle zu vergleichen.
-      </p>
-
       <label for="job_id_input">Bitte Job-ID eingeben:</label>
       <input type="text" id="job_id_input" placeholder="z.B. 123456" style="margin-bottom: 15px;">
-      
       <button id="fetchJobMatchBtn" class="main-btn">
         <span class="btn-text">Job Matching abrufen 🚀</span>
         <div class="spinner hidden"></div>
       </button>
     </div>
-
-    <div id="matchResult" class="hidden" >
-        
-        <div id="matchOutputText" ></div>
-    </div>
-
-</div>
-
-
+    <div id="matchResult" class="hidden"><div id="matchOutputText"></div></div>
+  </div>
 
   <div id="view-generator" class="hidden">
-
-   <button id="backFromNachrichtGenerator" class="nav-back-btn">
-  <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-  Zurück zum Menü
-</button>
-
+    <button id="backFromNachrichtGenerator" class="nav-back-btn">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      Zurück zum Menü
+    </button>
     <div class="card">
-
+      <label for="userPrompt">Dein Wunsch an die KI (Optional):</label>
+      <textarea id="userPrompt" rows="5" placeholder="z.B.: Erstelle eine Nachricht..."></textarea>
       
-     <div class="source-switch-container hidden">
-       <label class="section-label">Daten-Quelle:</label>
-        <div class="switch-wrapper">
-          <input type="radio" id="source-auto" name="dataSource" value="auto" checked>
-          <label for="source-auto" class="switch-btn">🔄 XING (Auto)</label>
-          
-          <input type="radio" id="source-manual" name="dataSource" value="manual">
-          <label for="source-manual" class="switch-btn">📄 LinkedIn (Text)</label>
+      <div class="quick-settings">
+        <div class="setting-group">
+          <label for="tonalität">Tonalität</label>
+          <select id="tonalität">
+            <option value="Sie-Form" selected>Sie-Form</option>
+            <option value="Du-Form">Du-Form</option>
+          </select>
+        </div>
+        <div class="setting-group">
+            <label for="msgLength">Länge</label>
+            <select id="msgLength">
+                <option value="Kurz">Kurz</option>
+                <option value="Normal" selected>Normal</option>
+            </select>
         </div>
       </div>
-
-
-
-    <label for="userPrompt">Dein Wunsch an die KI (Optional):</label>
-    <textarea id="userPrompt"  rows="10" placeholder="z.B.: Erstelle eine Nachricht an den Kandidaten..."></textarea>
-
-<div id="manual-input-container" class="hidden" style="margin-bottom: 15px;">
-        <label for="manualProfileData" style="font-size: 12px; font-weight: bold; color: #d9534f; display:block; margin-bottom:5px;">
-           LinkedIn Profiltext hier einfügen:
-        </label>
-        <textarea id="manualProfileData" rows="6" 
-                  placeholder="Kopiere den gesamten Text von LinkedIn (Strg+A, Strg+C) und füge ihn hier ein..."
-                  style="width: 100%; font-family: monospace; font-size: 11px; background: #fffcfc; border: 1px solid #e0e0e0;"></textarea>
-      </div>
-
-
-
-
-<!-- ERSETZE in deiner popup.html den Bereich ab "Quick Settings" bis "resultContainer" mit diesem Code: -->
-
-<!-- QUICK SETTINGS: Tonalität & Länge nebeneinander -->
-<div class="quick-settings">
-    <div class="setting-group">
-      <label for="tonalität">Tonalität</label>
-      <select id="tonalität">
-        <option value="Sie-Form" selected>Sie-Form</option>
-        <option value="Du-Form">Du-Form</option>
-      </select>
+      <button id="scrapeBtn" class="main-btn">Erstellen 🚀</button>
     </div>
-    
-    <div class="setting-group">
-        <label for="msgLength">Länge</label>
-        <select id="msgLength">
-            <option value="Kurz und knackig">Kurz & knackig</option>
-            <option value="Normal" selected>Normal (Standard)</option>
-            <option value="Sehr detailliert">Detailliert</option>
-        </select>
+    <div id="resultContainer" class="hidden">
+        <input type="text" id="outputSubject" readonly>
+        <textarea id="outputMessage" readonly></textarea>
     </div>
-</div>
-
-<!-- JOB-ID EINGABE (bleibt wie vorher) -->
-<div class="quick-settings" style="grid-template-columns: 1fr; margin-top: -8px;">
-  <div class="setting-group">
-    <label for="job_id_input_message">Job-ID (Optional)</label>
-    <input type="text" id="job_id_input_message" placeholder="z.B. 123456">
   </div>
-</div>
-    
-<button id="scrapeBtn" class="main-btn">
-  <span class="btn-text">Nachricht erstellen 🚀</span>
-  <div class="spinner hidden"></div>
-</button>
-</div>
-
-<!-- ERGEBNIS CONTAINER - NEUES DESIGN -->
-<div id="resultContainer" class="hidden">
-    
-    <!-- BETREFF CARD -->
-    <div class="result-group">
-      <div class="label-row">
-        <label>📧 Betreff</label>
-        <button class="copy-btn" id="copySubject" title="Betreff kopieren">Kopieren</button>
-      </div>
-      <input type="text" id="outputSubject" readonly>
-    </div>
-
-    <!-- NACHRICHT CARD -->
-    <div class="result-group">
-      <div class="label-row">
-        <label>✉️ Nachricht</label>
-        <button class="copy-btn" id="copyMessage" title="Nachricht kopieren">Kopieren</button>
-      </div>
-      <textarea id="outputMessage" readonly></textarea>
-    </div>
-
-</div>
-
-<!-- ANPASSEN BUTTON (bleibt wie vorher) -->
-<div id="recreateContainer" class="action-row hidden" style="margin: 0 16px 16px 16px;">
-  <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; text-align: center;">
-    💡 Nicht zufrieden? Ändere den Wunsch oben & klicke hier:
-  </p>
-  <button id="recreateBtn" class="secondary-btn">
-    <span class="btn-text">Nachricht anpassen 🔄</span>
-    <div class="spinner hidden"></div>
-  </button>
-</div>
-
-  </div>
-  
-  
 
   <div id="statusMessage"></div>
-
   <script src="popup.js"></script>
 </body>
 </html>

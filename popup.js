@@ -12,9 +12,6 @@ const platformConfig = {
  * Holt die Recruiter-Daten aus dem Storage und gibt ein Promise zurück.
  */
 
-
-
-
 function getRecruiterData() {
     return new Promise((resolve, reject) => {
         // Zugriff auf chrome.storage.local
@@ -37,66 +34,89 @@ function getRecruiterData() {
         });
     });
 }
-
 // ==========================================
-    // X. RECRUITER NAME LOGIC (CHECK & SAVE)
-    // ==========================================
-    
-    const recruiterNameContainer = document.getElementById("recruiter-name-container");
-    const recruiterNameInput = document.getElementById("user_name_input");
-    const btnSaveName = document.getElementById("saveUserNameBtn"); // Der neue Button
+// X. RECRUITER NAME LOGIC (CHECK & SAVE)
+// ==========================================
 
-    const generator = document.getElementById("nav-to-generator");
-    const matching = document.getElementById("nav-to-job-matching");
+const recruiterNameContainer = document.getElementById("recruiter-name-container");
+const recruiterNameInput = document.getElementById("user_name_input");
+const btnSaveName = document.getElementById("saveUserNameBtn");
 
-    // 1. Beim Start prüfen: Ist ein Name gespeichert?
-    getRecruiterData().then(({ rName }) => {
-        if (!rName || rName.trim() === "") {
-            console.log("Name fehlt. Zeige Eingabefeld.");
-            if (recruiterNameContainer) {
-                generator.classList.add("hidden");
-                matching.classList.add("hidden");
-                recruiterNameContainer.classList.remove("hidden");
-            }
-        }
-    });
+// Neue IDs aus den Einstellungen
+const settingsNameInput = document.getElementById("settings_name_input");
+const btnSaveSettingsName = document.getElementById("saveSettingsNameBtn");
 
-    // 2. Klick-Listener für den Speichern-Button
-    if (btnSaveName && recruiterNameInput) {
-        btnSaveName.addEventListener("click", () => {
-            const newName = recruiterNameInput.value.trim();
+const generatorBtn = document.getElementById("nav-to-generator");
+const matchingBtn = document.getElementById("nav-to-job-matching");
+const statusDiv = document.getElementById("statusMessage");
 
-            if (!newName) {
-                showError("Bitte geben Sie einen Namen ein.");
-                return;
-            }
-
-            // Bestehende Daten holen (um Email nicht zu überschreiben)
-            chrome.storage.local.get(['cachedRecruiter'], (result) => {
-                const currentData = result.cachedRecruiter || {};
-                
-                // Name updaten
-                const updatedData = { 
-                    ...currentData, 
-                    name: newName 
-                };
-
-                // Speichern
-                chrome.storage.local.set({ cachedRecruiter: updatedData }, () => {
-                    console.log("Name gespeichert:", newName);
-                    
-                    // UI Feedback
-                    recruiterNameContainer.classList.add("hidden");
-                    generator.classList.remove("hidden");
-                    matching.classList.remove("hidden");
-                    statusDiv.innerHTML = `<span style="color:green;">✅ Name "${newName}" gespeichert!</span>`;
-                    
-                    // Status nach 3 Sekunden löschen
-                    setTimeout(() => { statusDiv.innerText = ""; }, 3000);
-                });
-            });
-        });
+/**
+ * Hilfsfunktion zum Speichern und UI-Update
+ */
+function saveNameProcess(newName) {
+    if (!newName) {
+        // Falls du keine showError Funktion hast, nutzen wir ein einfaches Feedback
+        statusDiv.innerHTML = `<span style="color:red;">⚠️ Bitte Namen eingeben!</span>`;
+        return;
     }
+
+    chrome.storage.local.get(['cachedRecruiter'], (result) => {
+        const currentData = result.cachedRecruiter || {};
+        const updatedData = { ...currentData, name: newName };
+
+        chrome.storage.local.set({ cachedRecruiter: updatedData }, () => {
+            console.log("Name gespeichert:", newName);
+            
+            // 1. UI im Hauptmenü freischalten
+            if (recruiterNameContainer) recruiterNameContainer.classList.add("hidden");
+            generatorBtn.classList.remove("hidden");
+            matchingBtn.classList.remove("hidden");
+            
+            // 2. Felder synchronisieren
+            if (recruiterNameInput) recruiterNameInput.value = newName;
+            if (settingsNameInput) settingsNameInput.value = newName;
+
+            // 3. Erfolg melden
+            statusDiv.innerHTML = `<span style="color:green;">✅ Name gespeichert!</span>`;
+            
+            // 4. Falls wir in der Einstellungs-Ansicht waren, zurück zum Menü
+            // (Optional: switchView(viewMenu);)
+            
+            setTimeout(() => { statusDiv.innerText = ""; }, 3000);
+        });
+    });
+}
+
+// 1. INITIALER CHECK BEIM START
+getRecruiterData().then(({ rName }) => {
+    // Felder befüllen (damit man in den Settings sieht, was gespeichert ist)
+    if (recruiterNameInput) recruiterNameInput.value = rName;
+    if (settingsNameInput) settingsNameInput.value = rName;
+
+    // Wenn Name fehlt: Menü-Buttons verstecken, Eingabe zeigen
+    if (!rName || rName.trim() === "") {
+        generatorBtn.classList.add("hidden");
+        matchingBtn.classList.add("hidden");
+        recruiterNameContainer.classList.remove("hidden");
+    }
+});
+
+// 2. EVENT LISTENER
+// Klick im Hauptmenü (Warnfeld)
+if (btnSaveName) {
+    btnSaveName.addEventListener("click", () => {
+        saveNameProcess(recruiterNameInput.value.trim());
+    });
+}
+
+// Klick in den Einstellungen
+if (btnSaveSettingsName) {
+    btnSaveSettingsName.addEventListener("click", () => {
+        saveNameProcess(settingsNameInput.value.trim());
+        // Nach dem Speichern in den Einstellungen zurück zum Hauptmenü
+        if (typeof viewMenu !== 'undefined') switchView(viewMenu);
+    });
+}
 
 let lastDetectedPlatform = null;
 
@@ -205,11 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewMenu = document.getElementById("view-menu");
     const viewGenerator = document.getElementById("view-generator");
     const viewJobMatching = document.getElementById("job-matching-container");
+    const viewSettings = document.getElementById("view-settings");
 
     const btnToGen = document.getElementById("nav-to-generator");
     const btnToMatch = document.getElementById("nav-to-job-matching");
     const btnBackMatch = document.getElementById("backFromJobMatching");
     const btnBackGen = document.getElementById("backFromNachrichtGenerator");
+    const btnSettings = document.getElementById("settings-btn");
+    const btnBackSettings = document.getElementById("backFromSettings");
 
     // Generator Tool
     const scrapeBtn = document.getElementById("scrapeBtn");
@@ -840,22 +863,33 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const fileBase64 = await getBase64(file);
 
+            console.log("Sende Datei an n8n:",fileBase64);
+
                 // API_URL muss hier definiert sein oder von oben kommen
-                const response = await fetch('DEINE_WEBHOOK_URL_HIER', {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         fileName: file.name,
                         data: fileBase64,
-                        sentAt: new Date().toISOString()
+                        sentAt: new Date().toISOString(),
+                    source: "resume_upload"
+
                     })
                 });
 
                 if (response.ok) {
-                    alert("Datei erfolgreich übertragen! ✅");
-                    resetUpload();
-                } else {
-                    alert("Fehler beim Senden.");
+                // 1. Sofort Feedback geben
+                statusDiv.innerText = "Datei erfolgreich übertragen! ✅";
+
+                // 2. Nach 4 Sekunden aufräumen
+                setTimeout(() => {
+                    statusDiv.innerText = ""; 
+                    resetUpload();
+                }, 3000);
+            } else {
+                    
+                    statusDiv.innerText = "Fehler beim Senden der Datei! ❌";
                 }
             } catch (error) {
                 console.error("Upload Fehler:", error);
@@ -929,6 +963,7 @@ document.addEventListener('DOMContentLoaded', () => {
         viewMenu.classList.add("hidden");
         viewGenerator.classList.add("hidden");
         viewJobMatching.classList.add("hidden");
+        if (viewSettings) viewSettings.classList.add("hidden");
         targetView.classList.remove("hidden");
     }
 
@@ -936,6 +971,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToMatch) btnToMatch.addEventListener("click", () => switchView(viewJobMatching));
     if (btnBackMatch) btnBackMatch.addEventListener("click", () => switchView(viewMenu));
     if (btnBackGen) btnBackGen.addEventListener("click", () => switchView(viewMenu));
+    if (btnSettings && viewSettings) btnSettings.addEventListener("click", () => switchView(viewSettings));
+    if (btnBackSettings) btnBackSettings.addEventListener("click", () => switchView(viewMenu));
 
     function startCooldown() {
         const now = Date.now();
@@ -1004,6 +1041,72 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearInputError(inputEl) {
         if (!inputEl) return;
         inputEl.classList.remove("input-error");
+    }
+
+    // Drag-and-Drop fuer den Lebenslauf-Upload aktivieren
+    if (dropArea && fileInput) {
+        const allowedExtensions = new Set(["pdf", "doc", "docx"]);
+
+        const restoreDropAreaStyle = () => {
+            const hasSelectedFile = fileInput.files && fileInput.files.length > 0;
+            if (hasSelectedFile) {
+                dropArea.style.borderColor = "#28a745";
+                dropArea.style.backgroundColor = "#f6fff8";
+            } else {
+                dropArea.style.borderColor = "";
+                dropArea.style.backgroundColor = "";
+            }
+        };
+
+        const preventDefaults = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, (event) => {
+                preventDefaults(event);
+                dropArea.style.borderColor = "#026466";
+                dropArea.style.backgroundColor = "#eef9f9";
+            });
+        });
+
+        ["dragleave", "dragend"].forEach((eventName) => {
+            dropArea.addEventListener(eventName, (event) => {
+                preventDefaults(event);
+                restoreDropAreaStyle();
+            });
+        });
+
+        dropArea.addEventListener("drop", (event) => {
+            preventDefaults(event);
+
+            const droppedFile = event.dataTransfer?.files?.[0];
+            if (!droppedFile) {
+                restoreDropAreaStyle();
+                return;
+            }
+
+            const ext = droppedFile.name.split(".").pop()?.toLowerCase();
+            if (!allowedExtensions.has(ext || "")) {
+                showError("Bitte nur PDF, DOC oder DOCX hochladen.");
+                restoreDropAreaStyle();
+                setTimeout(() => { clearError(); }, 3000);
+                return;
+            }
+
+            try {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(droppedFile);
+                fileInput.files = dataTransfer.files;
+                fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+            } catch (err) {
+                console.error("Drop-Fehler:", err);
+                showError("Drag-and-Drop wird hier nicht unterstuetzt.");
+                restoreDropAreaStyle();
+                setTimeout(() => { clearError(); }, 3000);
+            }
+        });
     }
 
 });
