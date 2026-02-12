@@ -33,6 +33,35 @@
     <button id="nav-to-job-matching" class="main-btn">
        Xing/linkedin Job Matching 🛠️
     </button>
+
+
+    
+<div class="upload-section">
+    <label for="resume_upload" class="drop-zone" id="drop-area">
+        <div class="drop-zone-content">
+            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span class="drop-zone-title">LEBENSLAUF HOCHLADEN</span>
+            <span class="drop-zone-desc">Klicken oder Datei hierher ziehen</span>
+        </div>
+        <input type="file" id="resume_upload" accept=".pdf,.docx,.doc" hidden>
+    </label>
+
+    <div id="file-info-container" class="file-info hidden" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+        <span id="file-name-display"></span>
+        <button id="removeFileBtn" style="background: none; border: none; color: #d9534f; cursor: pointer; font-size: 16px;" title="Datei entfernen">
+            ✖
+        </button>
+    </div>
+    
+    <button id="saveCandidateBtn" class="main-btn primary-action hidden" style="margin-top: 15px; background-color: #026466; width: 100%;">
+        Kandidat anlegen ➕
+    </button>
+</div>
+
   </div>
 
 

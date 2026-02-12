@@ -768,6 +768,106 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
+
+    
+// Elemente erst abrufen, wenn das DOM geladen ist
+    const fileInput = document.getElementById('resume_upload');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const fileInfoContainer = document.getElementById('file-info-container');
+    const removeFileBtn = document.getElementById('removeFileBtn');
+    const saveCandidateBtn = document.getElementById('saveCandidateBtn');
+    const dropArea = document.getElementById('drop-area');
+
+    // Funktion zum Zurücksetzen der Upload-Ansicht
+    function resetUpload() {
+        if (fileInput) fileInput.value = ""; 
+        if (fileInfoContainer) {
+            fileInfoContainer.classList.add('hidden');
+            fileInfoContainer.style.display = "none"; // Sicherstellen, dass es weg ist
+        }
+        if (saveCandidateBtn) saveCandidateBtn.classList.add('hidden');
+        
+        if (dropArea) {
+            dropArea.style.borderColor = ""; 
+            dropArea.style.backgroundColor = "";
+        }
+    }
+
+    // 1. Datei-Auswahl
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files.length > 0) {
+                fileNameDisplay.textContent = "📄 " + this.files[0].name;
+                fileInfoContainer.classList.remove('hidden');
+                fileInfoContainer.style.display = "flex"; // Anzeigen als Flexbox
+                saveCandidateBtn.classList.remove('hidden');
+
+                // UI Feedback
+                dropArea.style.borderColor = "#28a745";
+                dropArea.style.backgroundColor = "#f6fff8";
+            }
+        });
+    }
+
+    // 2. Datei entfernen
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            resetUpload();
+        });
+    }
+
+    // Hilfsfunktion: Base64
+    function getBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // 3. Datei an n8n senden
+    if (saveCandidateBtn) {
+        saveCandidateBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            saveCandidateBtn.disabled = true;
+            saveCandidateBtn.textContent = "Sende Datei... ⏳";
+
+            try {
+                const fileBase64 = await getBase64(file);
+
+                // API_URL muss hier definiert sein oder von oben kommen
+                const response = await fetch('DEINE_WEBHOOK_URL_HIER', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        data: fileBase64,
+                        sentAt: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    alert("Datei erfolgreich übertragen! ✅");
+                    resetUpload();
+                } else {
+                    alert("Fehler beim Senden.");
+                }
+            } catch (error) {
+                console.error("Upload Fehler:", error);
+            } finally {
+                saveCandidateBtn.disabled = false;
+                saveCandidateBtn.textContent = "Kandidat anlegen ➕";
+            }
+        });
+    }
+
+
+
     // Funktion 2: Für Nachricht Generierung
     function sendPayloadToN8n(payload, loadingText, isRecreate = false) {
         if (isRequestRunning) return;
