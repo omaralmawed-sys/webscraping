@@ -791,6 +791,161 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    
+    // --- KANDIDAT ANLEGEN LOGIK ---
+
+//     let data;
+
+// if (btnToCandidate) {
+//     btnToCandidate.addEventListener("click", async () => {
+//         switchView(viewCreateCandidate);
+//         statusDiv.innerText = "🔍 Lese Profildaten aus...";
+
+//         try {
+//             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+//             const tabId = tabs[0].id;
+
+//             // Nachricht an den Kandidaten-Scraper senden
+//             chrome.tabs.sendMessage(tabId, { action: "SCRAPE_CANDIDATE" }, (response) => {
+//                 if (chrome.runtime.lastError || !response || response.status === "error") {
+//                     console.log("Kandidaten-Scraper nicht aktiv. Injiziere...");
+//                     // Falls das Script noch nicht geladen ist, injizieren wir es
+//                     chrome.scripting.executeScript({
+//                         target: { tabId: tabId },
+//                         files: ['kandidaten-anlegen.js']
+//                     }).then(() => {
+//                         // Nach Injektion kurz warten und erneut versuchen
+//                         setTimeout(() => {
+//                             chrome.tabs.sendMessage(tabId, { action: "SCRAPE_CANDIDATE" }, (retryRes) => {
+//                                 if(retryRes && retryRes.data) fillCandidateFields(retryRes.data);
+
+//                                 console.log("Antwort nach Injektion:", retryRes.data);
+//                                 data = retryRes.data;
+//                             });
+//                         }, 1000);
+//                     });
+//                 } else {
+//                     fillCandidateFields(response.data);
+//                     data = response.data;
+                   
+//                 }
+//             });
+//         } catch (err) {
+//             showError("Fehler beim Laden der Daten.");
+//         }
+//     });
+// }
+
+// // Hilfsfunktion zum Befüllen der Felder
+// // Hilfsfunktion zum Befüllen der Felder in popup.js
+// function fillCandidateFields(data) {
+//     const imgDisplay = document.getElementById("cand_image_display");
+    
+//     if(candNameInput) candNameInput.value = data.fullName || "";
+//     if(candCompanyInput) candCompanyInput.value = data.company || "";
+//     if(candPositionInput) candPositionInput.value = data.position || "";
+
+//     // NEU: Bild anzeigen
+//     if (imgDisplay && data.profileImage) {
+//         imgDisplay.src = data.profileImage;
+//         imgDisplay.style.display = "inline-block"; // Bild sichtbar machen
+//     } else if (imgDisplay) {
+//         imgDisplay.style.display = "none"; // Verstecken, falls kein Bild da
+//     }
+
+//     statusDiv.innerText = "✅ Daten übernommen.";
+//     setTimeout(clearError, 2000);
+// }
+
+// // Zurück-Button
+// if (btnBackCandidate) {
+//     btnBackCandidate.addEventListener("click", () => switchView(viewMenu));
+// }
+
+// // Speicher-Button (Lokal oder API)
+// // Speicher-Button (Daten an n8n senden)
+// if (btnSaveCandidate) {
+// btnSaveCandidate.addEventListener("click", async () => {
+//         try {
+//             // 1. Recruiter-Daten vollständig holen
+//             const recruiter = await getRecruiterData();
+//             const rName = recruiter.rName || "Unbekannt";
+//             const rEmail = recruiter.rEmail || "Keine Email";
+            
+//             // 2. Kandidaten-Daten aus den Eingabefeldern sammeln (das ist die Wahrheit!)
+//             const candidate = {
+//                 name: candNameInput.value.trim(),
+//                 company: candCompanyInput.value.trim(),
+//                 position: candPositionInput.value.trim(),
+//                 image: document.getElementById("cand_image_display")?.src || "",
+//                 date: new Date().toLocaleDateString()
+//             };
+
+//             // Validierung
+//             if (!candidate.name) {
+//                 showError("Bitte geben Sie einen Namen ein.");
+//                 return;
+//             }
+
+//             // Namen sicher splitten
+//             const nameParts = candidate.name.split(/\s+/); // Splittet bei jedem Leerzeichen
+//             const firstName = nameParts[0] || "";
+//             const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+            
+//             // 3. Payload für n8n vorbereiten
+//             const payload = {
+//                 mode: "save_candidate",
+//                 candidate: candidate, 
+//                 // data: data, // Optional: Nur mitsenden, wenn n8n die Rohdaten wirklich braucht
+//                 firstName: firstName,
+//                 lastName: lastName,
+//                 timestamp: new Date().toISOString(),
+//                 recruiter_name: rName,
+//                 recruiter_email: rEmail,
+//                 source: "linkedin_extension"
+//             };
+
+//             statusDiv.innerHTML = "⏳ Speichere Kandidat...";
+//             console.log("Sende Payload an n8n:", payload);
+
+//             // 4. Hier folgt dein Fetch-Aufruf...
+//             // fetch(API_URL, { ... })
+
+//         } catch (err) {
+//             console.error("Fehler beim Vorbereiten der Daten:", err);
+//             showError("Fehler beim Speichern.");
+//         }
+
+//         statusDiv.innerHTML = "⏳ Speichere Kandidat...";
+
+        // // 4. Fetch an n8n (ohne auf Antwort zu warten, wie gewünscht)
+        // fetch(API_URL, {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json" },
+        //     body: JSON.stringify(payload)
+        // })
+        // .then(() => {
+        //     // Erfolg anzeigen
+        //     console.log("Kandidat erfolgreich an n8n gesendet:", candidate);
+        //     statusDiv.innerHTML = `<span style="color:green;">✅ Kandidat ${candidate.name} wurde in Vincere gespeichert!</span>`;
+            
+        //     // Optional: Felder leeren nach Speichern
+        //     setTimeout(() => {
+        //         candNameInput.value = "";
+        //         candCompanyInput.value = "";
+        //         candPositionInput.value = "";
+        //         document.getElementById("cand_image_display").style.display = "none";
+        //         clearError();
+        //     }, 3000);
+        // })
+        // .catch(err => {
+        //     console.error("Fehler beim Senden an n8n:", err);
+        //     showError("Fehler beim Speichern in n8n.");
+//         // });
+//     });
+// }
+
+
 
 
     
