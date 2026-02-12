@@ -15,7 +15,7 @@
     </svg>
   </header>
 
-  <div id="view-menu" class="card">
+<div id="view-menu" class="card">
     <p style="text-align:center; margin-bottom:20px; font-size: 18px; font-weight:bold ; color: #333;">Wähle ein Tool:</p>
 
     <div id="recruiter-name-container" class="setting-group hidden" style="margin-bottom: 15px;">
@@ -25,9 +25,16 @@
     </div>
 
     <button id="nav-to-generator" class="main-btn">Nachricht Generator ✉️</button>
-    <button id="nav-to-job-matching" class="main-btn">Xing/linkedin Job Matching 🛠️</button>
+    <button id="nav-to-job-matching" class="main-btn">Xing/LinkedIn Job Matching 🛠️</button>
 
-    <div class="upload-section">
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button id="tab-kandidat" class="secondary-btn" style="flex: 1; border-bottom: 3px solid var(--platform-primary);">Kandidat anlegen</button>
+        <button id="tab-kontakt" class="secondary-btn" style="flex: 1;">Kontakt anlegen</button>
+    </div>
+
+    <div id="section-kandidat" class="upload-section hidden">
         <label for="resume_upload" class="drop-zone" id="drop-area">
             <div class="drop-zone-content">
                 <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -36,17 +43,33 @@
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
                 <span class="drop-zone-title">LEBENSLAUF HOCHLADEN</span>
-                <span class="drop-zone-desc">Klicken oder Datei hierher ziehen</span>
+                <span class="drop-zone-desc">Datei hierher ziehen</span>
             </div>
             <input type="file" id="resume_upload" accept=".pdf,.docx,.doc" hidden>
         </label>
-        <div id="file-info-container" class="file-info hidden" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+        <div id="file-info-container" class="file-info hidden">
             <span id="file-name-display"></span>
-            <button id="removeFileBtn" style="background: none; border: none; color: #d9534f; cursor: pointer; font-size: 16px;">✖</button>
+            <button id="removeFileBtn" style="background:none; border:none; color:#d9534f; cursor:pointer;">✖</button>
         </div>
-        <button id="saveCandidateBtn" class="main-btn primary-action hidden" style="margin-top: 15px; background-color: #026466; width: 100%;">Kandidat anlegen ➕</button>
+        <button id="saveCandidateBtn" class="main-btn hidden" style="margin-top: 15px; background-color: #026466;">Kandidat anlegen ➕</button>
     </div>
-  </div>
+
+    <div id="section-kontakt" class="hidden" style="animation: fadeIn 0.3s ease;">
+        <div class="setting-group" style="margin-bottom: 10px;">
+            <label>Name des Kontakts</label>
+            <input type="text" id="contact_fullname" placeholder="Vollständiger Name">
+        </div>
+        <div class="setting-group" style="margin-bottom: 10px;">
+            <label>Jobtitel</label>
+            <input type="text" id="contact_jobtitle" placeholder="z.B. IT Manager">
+        </div>
+        <div class="setting-group" style="margin-bottom: 10px;">
+            <label>Profilbild URL</label>
+            <input type="text" id="contact_image" placeholder="https://...">
+        </div>
+        <button id="saveContactBtn" class="main-btn" style="background-color: #026466;">Kontakt anlegen 👤</button>
+    </div>
+</div>
 
   <div id="view-settings" class="hidden">
     <button id="backFromSettings" class="nav-back-btn">
