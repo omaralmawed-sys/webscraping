@@ -685,158 +685,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     
-    // --- KANDIDAT ANLEGEN LOGIK ---
+ 
 
-//     let data;
 
-// if (btnToCandidate) {
-//     btnToCandidate.addEventListener("click", async () => {
-//         switchView(viewCreateCandidate);
-//         statusDiv.innerText = "🔍 Lese Profildaten aus...";
-
-//         try {
-//             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-//             const tabId = tabs[0].id;
-
-//             // Nachricht an den Kandidaten-Scraper senden
-//             chrome.tabs.sendMessage(tabId, { action: "SCRAPE_CANDIDATE" }, (response) => {
-//                 if (chrome.runtime.lastError || !response || response.status === "error") {
-//                     console.log("Kandidaten-Scraper nicht aktiv. Injiziere...");
-//                     // Falls das Script noch nicht geladen ist, injizieren wir es
-//                     chrome.scripting.executeScript({
-//                         target: { tabId: tabId },
-//                         files: ['kandidaten-anlegen.js']
-//                     }).then(() => {
-//                         // Nach Injektion kurz warten und erneut versuchen
-//                         setTimeout(() => {
-//                             chrome.tabs.sendMessage(tabId, { action: "SCRAPE_CANDIDATE" }, (retryRes) => {
-//                                 if(retryRes && retryRes.data) fillCandidateFields(retryRes.data);
-
-//                                 console.log("Antwort nach Injektion:", retryRes.data);
-//                                 data = retryRes.data;
-//                             });
-//                         }, 1000);
-//                     });
-//                 } else {
-//                     fillCandidateFields(response.data);
-//                     data = response.data;
-                   
-//                 }
-//             });
-//         } catch (err) {
-//             showError("Fehler beim Laden der Daten.");
-//         }
-//     });
-// }
-
-// // Hilfsfunktion zum Befüllen der Felder
-// // Hilfsfunktion zum Befüllen der Felder in popup.js
-// function fillCandidateFields(data) {
-//     const imgDisplay = document.getElementById("cand_image_display");
-    
-//     if(candNameInput) candNameInput.value = data.fullName || "";
-//     if(candCompanyInput) candCompanyInput.value = data.company || "";
-//     if(candPositionInput) candPositionInput.value = data.position || "";
-
-//     // NEU: Bild anzeigen
-//     if (imgDisplay && data.profileImage) {
-//         imgDisplay.src = data.profileImage;
-//         imgDisplay.style.display = "inline-block"; // Bild sichtbar machen
-//     } else if (imgDisplay) {
-//         imgDisplay.style.display = "none"; // Verstecken, falls kein Bild da
-//     }
-
-//     statusDiv.innerText = "✅ Daten übernommen.";
-//     setTimeout(clearError, 2000);
-// }
-
-// // Zurück-Button
-// if (btnBackCandidate) {
-//     btnBackCandidate.addEventListener("click", () => switchView(viewMenu));
-// }
-
-// // Speicher-Button (Lokal oder API)
-// // Speicher-Button (Daten an n8n senden)
-// if (btnSaveCandidate) {
-// btnSaveCandidate.addEventListener("click", async () => {
-//         try {
-//             // 1. Recruiter-Daten vollständig holen
-//             const recruiter = await getRecruiterData();
-//             const rName = recruiter.rName || "Unbekannt";
-//             const rEmail = recruiter.rEmail || "Keine Email";
-            
-//             // 2. Kandidaten-Daten aus den Eingabefeldern sammeln (das ist die Wahrheit!)
-//             const candidate = {
-//                 name: candNameInput.value.trim(),
-//                 company: candCompanyInput.value.trim(),
-//                 position: candPositionInput.value.trim(),
-//                 image: document.getElementById("cand_image_display")?.src || "",
-//                 date: new Date().toLocaleDateString()
-//             };
-
-//             // Validierung
-//             if (!candidate.name) {
-//                 showError("Bitte geben Sie einen Namen ein.");
-//                 return;
-//             }
-
-//             // Namen sicher splitten
-//             const nameParts = candidate.name.split(/\s+/); // Splittet bei jedem Leerzeichen
-//             const firstName = nameParts[0] || "";
-//             const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
-            
-//             // 3. Payload für n8n vorbereiten
-//             const payload = {
-//                 mode: "save_candidate",
-//                 candidate: candidate, 
-//                 // data: data, // Optional: Nur mitsenden, wenn n8n die Rohdaten wirklich braucht
-//                 firstName: firstName,
-//                 lastName: lastName,
-//                 timestamp: new Date().toISOString(),
-//                 recruiter_name: rName,
-//                 recruiter_email: rEmail,
-//                 source: "linkedin_extension"
-//             };
-
-//             statusDiv.innerHTML = "⏳ Speichere Kandidat...";
-//             console.log("Sende Payload an n8n:", payload);
-
-//             // 4. Hier folgt dein Fetch-Aufruf...
-//             // fetch(API_URL, { ... })
-
-//         } catch (err) {
-//             console.error("Fehler beim Vorbereiten der Daten:", err);
-//             showError("Fehler beim Speichern.");
-//         }
-
-//         statusDiv.innerHTML = "⏳ Speichere Kandidat...";
-
-        // // 4. Fetch an n8n (ohne auf Antwort zu warten, wie gewünscht)
-        // fetch(API_URL, {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify(payload)
-        // })
-        // .then(() => {
-        //     // Erfolg anzeigen
-        //     console.log("Kandidat erfolgreich an n8n gesendet:", candidate);
-        //     statusDiv.innerHTML = `<span style="color:green;">✅ Kandidat ${candidate.name} wurde in Vincere gespeichert!</span>`;
-            
-        //     // Optional: Felder leeren nach Speichern
-        //     setTimeout(() => {
-        //         candNameInput.value = "";
-        //         candCompanyInput.value = "";
-        //         candPositionInput.value = "";
-        //         document.getElementById("cand_image_display").style.display = "none";
-        //         clearError();
-        //     }, 3000);
-        // })
-        // .catch(err => {
-        //     console.error("Fehler beim Senden an n8n:", err);
-        //     showError("Fehler beim Speichern in n8n.");
-//         // });
-//     });
-// }
 
 
 
@@ -899,53 +750,53 @@ reader.readAsDataURL(file);
  });
  }
 
-// 3. Datei an n8n senden
- if (saveCandidateBtn) {
- saveCandidateBtn.addEventListener('click', async () => {
- const file = fileInput.files[0];
- if (!file) return;
+// // 3. Datei an n8n senden
+//  if (saveCandidateBtn) {
+//  saveCandidateBtn.addEventListener('click', async () => {
+//  const file = fileInput.files[0];
+//  if (!file) return;
 
- saveCandidateBtn.disabled = true;
- saveCandidateBtn.textContent = "Sende Datei... ⏳";
+//  saveCandidateBtn.disabled = true;
+//  saveCandidateBtn.textContent = "Sende Datei... ⏳";
 
- try {
- const fileBase64 = await getBase64(file);
+//  try {
+//  const fileBase64 = await getBase64(file);
 
-            console.log("Sende Datei an n8n:",fileBase64);
+//             console.log("Sende Datei an n8n:",fileBase64);
 
- // API_URL muss hier definiert sein oder von oben kommen
- const response = await fetch(API_URL, {
- method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
- fileName: file.name,
- data: fileBase64,
- sentAt: new Date().toISOString(),
-                    source: "resume_upload"
+//  // API_URL muss hier definiert sein oder von oben kommen
+//  const response = await fetch(API_URL, {
+//  method: 'POST',
+// headers: { 'Content-Type': 'application/json' },
+// body: JSON.stringify({
+//  fileName: file.name,
+//  data: fileBase64,
+//  sentAt: new Date().toISOString(),
+//                     source: "resume_upload"
 
- })
-});
+//  })
+// });
 
- if (response.ok) {
-                // 1. Sofort Feedback geben
-                statusDiv.innerText = "Datei erfolgreich übertragen! ✅";
+//  if (response.ok) {
+//                 // 1. Sofort Feedback geben
+//                 statusDiv.innerText = "Datei erfolgreich übertragen! ✅";
 
-                // 2. Nach 4 Sekunden aufräumen
-                setTimeout(() => {
-                    statusDiv.innerText = ""; 
-                    resetUpload();
-                }, 3000);
-            } else {
-                    statusDiv.innerText = "Fehler beim Senden der Datei! ❌";
-}
-} catch (error) {
- console.error("Upload Fehler:", error);
-} finally {
- saveCandidateBtn.disabled = false;
- saveCandidateBtn.textContent = "Kandidat anlegen ➕";
- }
-});
-}
+//                 // 2. Nach 4 Sekunden aufräumen
+//                 setTimeout(() => {
+//                     statusDiv.innerText = ""; 
+//                     resetUpload();
+//                 }, 3000);
+//             } else {
+//                     statusDiv.innerText = "Fehler beim Senden der Datei! ❌";
+// }
+// } catch (error) {
+//  console.error("Upload Fehler:", error);
+// } finally {
+//  saveCandidateBtn.disabled = false;
+//  saveCandidateBtn.textContent = "Kandidat anlegen ➕";
+//  }
+// });
+// }
 
 
 // Sektionen (Diese behandeln wir jetzt wie eigene Views)
@@ -971,6 +822,293 @@ if (btnTabKontakt) {
         switchView(sectionKontakt);
     });
 }
+
+
+// Variable zum Zwischenspeichern der Scraper-Daten für den Upload
+let currentScrapedCandidateForUpload = null;
+
+if (btnTabKandidat) {
+    btnTabKandidat.addEventListener("click", async () => {
+        switchView(sectionKandidat);
+        statusDiv.innerHTML = "🔍 Bereite Profil-Daten für Upload vor...";
+
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const tabId = tabs[0].id;
+
+            const runUploadScraper = () => {
+                chrome.tabs.sendMessage(tabId, { action: "SCRAPE_CANDIDATE" }, async (response) => {
+                    if (chrome.runtime.lastError || !response || response.status === "error") {
+                        chrome.scripting.executeScript({
+                            target: { tabId: tabId },
+                            files: ['kandidaten-anlegen.js']
+                        }, () => {
+                            setTimeout(runUploadScraper, 500);
+                        });
+                        return;
+                    }
+
+                    if (response && response.data) {
+                        // Wir speichern die Daten global, um sie beim Dateisenden zu nutzen
+                        currentScrapedCandidateForUpload = response.data;
+                        statusDiv.innerHTML = "✅ Profil bereit. Bitte Lebenslauf wählen.";
+                        setTimeout(() => { statusDiv.innerText = ""; }, 2000);
+                    }
+                });
+            };
+            runUploadScraper();
+        } catch (err) {
+            showError("Fehler beim Scraper-Start.");
+        }
+    });
+}
+
+
+
+if (saveCandidateBtn) {
+    saveCandidateBtn.addEventListener('click', async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        saveCandidateBtn.disabled = true;
+        saveCandidateBtn.textContent = "Sende Daten & Datei... ⏳";
+
+        try {
+            // 1. Datei in Base64 umwandeln
+            const fileBase64 = await getBase64(file);
+            
+            // 2. Recruiter Daten holen
+            const recruiter = await getRecruiterData();
+
+            // 3. Payload zusammenbauen (Datei + Scraper Daten)
+            const payload = {
+                mode: "save_candidate_with_file",
+                source: "resume_upload",
+                // Dateidaten
+                fileName: file.name,
+                fileData: fileBase64,
+                // Profildaten vom Scraper
+                candidate: {
+                    fullName: currentScrapedCandidateForUpload?.fullName || "Unbekannt",
+                    position: currentScrapedCandidateForUpload?.position || "",
+                    profileUrl: currentScrapedCandidateForUpload?.url || "",
+                    profileImage: currentScrapedCandidateForUpload?.profileImage || ""
+                },
+                // Recruiter Infos
+                recruiter_name: recruiter.rName,
+                recruiter_email: recruiter.rEmail,
+                sentAt: new Date().toISOString()
+            };
+
+            console.log("Sende komplettes Paket an n8n:", payload);
+
+            // 4. Absenden an n8n
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                statusDiv.innerHTML = `<span style="color:green;">✅ Kandidat & Datei erfolgreich angelegt!</span>`;
+                setTimeout(() => {
+                    statusDiv.innerText = "";
+                    resetUpload();
+                    switchView(viewMenu);
+                }, 3000);
+            } else {
+                showError("Fehler beim Senden an n8n.");
+            }
+        } catch (error) {
+            console.error("Upload Fehler:", error);
+            showError("Kritischer Fehler beim Upload.");
+        } finally {
+            saveCandidateBtn.disabled = false;
+            saveCandidateBtn.textContent = "Kandidat anlegen ➕";
+        }
+    });
+}
+
+
+
+
+// Felder aus der Kontakt-Sektion
+const contactNameInput = document.getElementById("contact_fullname");
+const contactJobInput = document.getElementById("contact_jobtitle");
+const contactImageInput = document.getElementById("contact_image"); // Das Textfeld für die URL
+const btnSaveContact = document.getElementById("saveContactBtn");
+const btnBackContact = document.getElementById("backFromSection-kontakt");
+
+// Wenn man auf "Kontakt anlegen" klickt
+// Variable zum Zwischenspeichern der aktuellen Payload
+let currentContactPayload = null;
+
+if (btnTabKontakt) {
+    btnTabKontakt.addEventListener("click", async () => {
+        // 1. Ansicht wechseln
+        switchView(sectionKontakt);
+        statusDiv.innerHTML = "🔍 Scrape Profil & prüfe Duplikate...";
+        
+        // Button deaktivieren
+        btnSaveContact.disabled = true;
+        btnSaveContact.style.opacity = "0.5";
+
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const tabId = tabs[0].id;
+
+            // Funktion, die den Scraper aufruft
+            const runScraper = () => {
+                chrome.tabs.sendMessage(tabId, { action: "SCRAPE_CANDIDATE" }, async (response) => {
+                    // Falls ein Fehler auftritt (Script nicht geladen)
+                    if (chrome.runtime.lastError || !response || response.status === "error") {
+                        console.log("Scraper nicht bereit. Starte Injection...");
+                        
+                        // Script injizieren
+                        chrome.scripting.executeScript({
+                            target: { tabId: tabId },
+                            files: ['kandidaten-anlegen.js']
+                        }, () => {
+                            // Kurz warten und dann erneut versuchen
+                            setTimeout(runScraper, 500);
+                        });
+                        return;
+                    }
+
+                    // ERFOLGREICH GECRAPT:
+                    if (response && response.data) {
+                        fillContactFields(response.data);
+                        
+                        const recruiter = await getRecruiterData();
+                        const nameParts = response.data.fullName.split(/\s+/);
+                        
+                        currentContactPayload = {
+                            mode: "check_kontakt",
+                            firstName: nameParts[0] || "",
+                            lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+                            jobTitle: response.data.position,
+                            profileImage: response.data.profileImage,
+                            recruiter_name: recruiter.rName || "Unbekannt",
+                            recruiter_email: recruiter.rEmail || "Keine Email",
+                            profileUrl: response.data.url // Wichtig für den n8n Check
+                        };
+
+                        checkDuplicateInN8n(currentContactPayload);
+                    }
+                });
+            };
+
+            // Ersten Versuch starten
+            runScraper();
+
+        } catch (err) {
+            console.error(err);
+            showError("Fehler beim Initialisieren des Scrapers.");
+        }
+    });
+}
+// Hilfsfunktion: Befüllt die KONTAKT-Felder und zeigt das BILD an
+function fillContactFields(data) {
+    const nameInput = document.getElementById("contact_fullname");
+    const jobInput = document.getElementById("contact_jobtitle");
+    const imgDisplay = document.getElementById("contact_image_display");
+    const imgUrlHidden = document.getElementById("contact_image_url");
+
+    // Texte befüllen
+    if(nameInput) nameInput.value = data.fullName || "";
+    if(jobInput) jobInput.value = data.position || "";
+
+    // Bild-Logik
+    if (imgDisplay && data.profileImage) {
+        imgDisplay.src = data.profileImage;
+        imgDisplay.style.display = "block"; // Sichtbar machen
+        
+        if(imgUrlHidden) imgUrlHidden.value = data.profileImage; // URL für später speichern
+    } else if (imgDisplay) {
+        imgDisplay.style.display = "none"; // Verstecken, falls kein Bild da
+    }
+
+    statusDiv.innerText = "✅ Profildaten übernommen.";
+    setTimeout(() => { statusDiv.innerText = ""; }, 2000);
+}
+
+// Funktion für die n8n Duplikatsprüfung
+async function checkDuplicateInN8n(payload) {
+    try {
+        const res = await fetch("https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await res.json();
+        const check = Array.isArray(result) ? result[0] : result;
+
+        if (check.is_empty === true) {
+            // KEIN DUPLIKAT: Button aktivieren
+            statusDiv.innerHTML = "<span style='color:green;'>✅ Kontakt ist neu. Bereit zum Speichern.</span>";
+            btnSaveContact.disabled = false;
+            btnSaveContact.style.opacity = "1";
+        } else if (check.is_empty === false) {
+            // DUPLIKAT GEFUNDEN: Benachrichtigung mit Optionen
+            statusDiv.innerHTML = `
+                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; border:1px solid #ffeeba; margin-top:10px;">
+                    <strong>⚠️ Kontakt existiert bereits!</strong><br> Trotzdem neu anlegen?
+                    <div style="margin-top:8px; display:flex; gap:10px; justify-content:center;">
+                        <button id="btn-force-save" class="secondary-btn" style="padding:4px 10px; background:#d9534f; color:white; border:none;">Ja, anlegen</button>
+                        <button id="btn-cancel-save" class="secondary-btn" style="padding:4px 10px; border:none;">Nein, abbrechen</button>
+                    </div>
+                </div>`;
+
+            // "Ja" -> Button freischalten
+            document.getElementById("btn-force-save").onclick = () => {
+                statusDiv.innerHTML = "<span style='color:orange;'>⚠️ Duplikat-Modus aktiviert.</span>";
+                btnSaveContact.disabled = false;
+                btnSaveContact.style.opacity = "1";
+            };
+
+            // "Nein" -> Zurück zum Menü
+            document.getElementById("btn-cancel-save").onclick = () => {
+                switchView(viewMenu);
+                statusDiv.innerText = "";
+            };
+        }
+    } catch (err) {
+        showError("n8n Check fehlgeschlagen.");
+    }
+}
+
+
+// Zurück-Button
+if (btnBackContact) {
+    btnBackContact.addEventListener("click", () => switchView(viewMenu));
+}// Speicher Button (sendet jetzt mit mode: "save_konakte")
+if (btnSaveContact) {
+    btnSaveContact.addEventListener("click", async () => {
+        statusDiv.innerHTML = "⏳ Speichere in Vincere...";
+        currentContactPayload.mode = "save_konakte"; // n8n weiß jetzt: Jetzt wirklich schreiben
+
+        try {
+            const res = await fetch("https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(currentContactPayload)
+            });
+
+            if (res.ok) {
+                statusDiv.innerHTML = "<span style='color:green;'>✅ Erfolgreich in Vincere angelegt!</span>";
+                setTimeout(() => {
+                    statusDiv.innerText = "";
+                    switchView(viewMenu);
+                }, 3000);
+            }
+        } catch (e) {
+            showError("Fehler beim finalen Speichern.");
+        }
+    });
+}
+
+
 
 
 
