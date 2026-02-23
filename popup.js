@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // TEIL 1: NEUE FUNKTIONEN (Plattform-Erkennung & Styles)
 // ============================================================================
 
@@ -933,7 +933,7 @@ if (btnTabKandidat) {
 
                 // 4. Duplikatsprüfung in n8n starten
                 // (Nutzt die optimierte Funktion aus unserer vorherigen Nachricht)
-                await checkDuplicateInN8n(currentContactPayload,"save_kandidaten");
+                await checkDuplicateInN8n(currentContactPayload,"save kontakten / kandidaten");
                 
             } else {
                 showError("Keine Daten vom Profil erhalten.");
@@ -1216,7 +1216,8 @@ async function checkDuplicateInN8n(payload, testMode) {
         showError("Unerwartete Antwort aus n8n bei Duplikatpruefung.");
         return;
     }
-    const isCandidateMode = testMode === "save_kandidaten" || testMode === "save_kandidat";
+    const itemType = String(payload?.item || "").toLowerCase();
+    const isCandidateMode = itemType === "kandidate" || itemType === "kandidat" || itemType === "candidate";
     const isEmpty = check.is_empty === true || check.is_empty === "true" || check.is_empty === 1;
 
     const showCandidateUploadArea = () => {
@@ -1241,7 +1242,7 @@ async function checkDuplicateInN8n(payload, testMode) {
         if (isCandidateMode) {
             showCandidateUploadArea();
             
-        } else if (testMode === "save kontakten / kandidaten") {
+        } else {
             const contactForm = document.getElementById("contact-form-area");
             
             if (contactForm) {
@@ -1255,8 +1256,6 @@ async function checkDuplicateInN8n(payload, testMode) {
             } else {
                 console.error("Fehler: Das HTML-Element mit id='contact-form-area' wurde nicht gefunden.");
             }
-        } else {
-            console.error("Fehler: Unbekannter testMode übergeben ->", testMode);
         }
     };
 
