@@ -739,15 +739,93 @@ document.addEventListener('DOMContentLoaded', () => {
         const removeFileBtn = document.getElementById('removeFileBtn');
         const saveCandidateBtn = document.getElementById('saveCandidateBtn');
         const dropArea = document.getElementById('drop-area');
+        const saveCandidateBtnText = saveCandidateBtn ? saveCandidateBtn.querySelector(".btn-text") : null;
+        const saveCandidateSpinner = saveCandidateBtn ? saveCandidateBtn.querySelector(".spinner") : null;
+        const saveCandidateDefaultLabel = saveCandidateBtnText
+        ? saveCandidateBtnText.textContent
+        : (saveCandidateBtn ? saveCandidateBtn.textContent : "Kandidat anlegen");
+        let candidateProgressTimerId = null;
+        let candidateProgressSeconds = 0;
+        let candidateProgressLabel = "";
+        const getNameParts = (fullName) => {
+        const normalizedName = typeof fullName === "string" ? fullName.trim() : "";
+        if (!normalizedName) return { firstName: "", lastName: "" };
+        const parts = normalizedName.split(/\s+/).filter(Boolean);
+        return {
+        firstName: parts[0] || "",
+        lastName: parts.length > 1 ? parts.slice(1).join(" ") : ""
+        };
+        };
+
+        function setSaveCandidateLabel(label) {
+        if (!saveCandidateBtn) return;
+        if (saveCandidateBtnText) {
+        saveCandidateBtnText.textContent = label;
+        } else {
+        saveCandidateBtn.textContent = label;
+        }
+        }
+
+        function setSaveCandidateLoadingState(isLoading, label) {
+        if (!saveCandidateBtn) return;
+        saveCandidateBtn.classList.toggle("loading", isLoading);
+        saveCandidateBtn.disabled = !!isLoading;
+        if (saveCandidateSpinner) saveCandidateSpinner.classList.toggle("hidden", !isLoading);
+        setSaveCandidateLabel(label || saveCandidateDefaultLabel);
+        }
+
+        function renderCandidateProgress() {
+        if (!statusDiv) return;
+        if (!candidateProgressLabel) return;
+        const elapsedHint = candidateProgressSeconds >= 55
+        ? `Läuft seit ${candidateProgressSeconds}s. Antwort kann bis zu 60s dauern.`
+        : `Läuft seit ${candidateProgressSeconds}s...`;
+
+        statusDiv.innerHTML = `
+            <div class="status-container">
+                <div class="pulsing-text">${candidateProgressLabel}</div>
+                <small class="candidate-progress-note">${elapsedHint}</small>
+            </div>`;
+        }
+
+        function startCandidateProgress(label) {
+        stopCandidateProgress();
+        candidateProgressSeconds = 0;
+        candidateProgressLabel = label;
+        renderCandidateProgress();
+        candidateProgressTimerId = setInterval(() => {
+        candidateProgressSeconds += 1;
+        renderCandidateProgress();
+        }, 1000);
+        }
+
+        function updateCandidateProgress(label) {
+        candidateProgressLabel = label;
+        renderCandidateProgress();
+        }
+
+        function stopCandidateProgress() {
+        if (candidateProgressTimerId) {
+        clearInterval(candidateProgressTimerId);
+        candidateProgressTimerId = null;
+        }
+        candidateProgressSeconds = 0;
+        candidateProgressLabel = "";
+        }
 
         // Funktion zum Zurücksetzen der Upload-Ansicht
         function resetUpload() {
         if (fileInput) fileInput.value = ""; 
+        if (fileNameDisplay) fileNameDisplay.textContent = "";
         if (fileInfoContainer) {
         fileInfoContainer.classList.add('hidden');
         fileInfoContainer.style.display = "none"; // Sicherstellen, dass es weg ist
         }
-        if (saveCandidateBtn) saveCandidateBtn.classList.add('hidden');
+        if (saveCandidateBtn) {
+        saveCandidateBtn.classList.add('hidden');
+        saveCandidateBtn.dataset.busy = "0";
+        setSaveCandidateLoadingState(false, saveCandidateDefaultLabel);
+        }
 
         if (dropArea) {
         dropArea.style.borderColor = ""; 
@@ -758,13 +836,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Datei-Auswahl
         if (fileInput) {
         fileInput.addEventListener('change', function() {
-        if (this.files && this.files.length > 0) {
-        fileNameDisplay.textContent = "📄 " + this.files[0].name;
+        const selectedFile = this.files && this.files.length > 0 ? this.files[0] : null;
+        if (!selectedFile) {
+        resetUpload();
+        return;
+        }
+        if (fileNameDisplay) fileNameDisplay.textContent = "📄 " + selectedFile.name;
+        if (fileInfoContainer) {
         fileInfoContainer.classList.remove('hidden');
         fileInfoContainer.style.display = "flex"; // Anzeigen als Flexbox
-        saveCandidateBtn.classList.remove('hidden');
+        }
+        if (saveCandidateBtn) saveCandidateBtn.classList.remove('hidden');
 
         // UI Feedback
+        if (dropArea) {
         dropArea.style.borderColor = "#28a745";
         dropArea.style.backgroundColor = "#f6fff8";
         }
@@ -782,10 +867,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hilfsfunktion: Base64
         function getBase64(file) {
         return new Promise((resolve, reject) => {
+        if (!file) {
+        reject(new Error("Keine Datei uebergeben."));
+        return;
+        }
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = error => reject(error);
+        reader.onload = () => {
+        const result = typeof reader.result === "string" ? reader.result : "";
+        const commaIndex = result.indexOf(",");
+        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+        };
+        reader.onerror = () => reject(reader.error || new Error("Datei konnte nicht gelesen werden."));
         });
         }
 
@@ -798,22 +891,6 @@ const btnTabKandidat = document.getElementById("tab-kandidat");
 const btnTabKontakt = document.getElementById("tab-kontakt");
 
 // --- 3. EVENT LISTENER ---
-
-
-
-// Wenn man auf "Kandidat anlegen" klickt
-if (btnTabKandidat) {
-    btnTabKandidat.addEventListener("click", () => {
-        switchView(sectionKandidat);
-    });
-}
-
-// Wenn man auf "Kontakt anlegen" klickt
-if (btnTabKontakt) {
-    btnTabKontakt.addEventListener("click", () => {
-        switchView(sectionKontakt);
-    });
-}
 
 
 // Variable zum Zwischenspeichern der Scraper-Daten für den Upload
@@ -836,14 +913,14 @@ if (btnTabKandidat) {
                 
                 // Recruiter Daten abrufen
                 const recruiter = await getRecruiterData();
-                const nameParts = response.data.fullName.split(/\s+/);
+                const { firstName, lastName } = getNameParts(response.data.fullName);
                 
                 // Payload für n8n zusammenbauen
                 currentContactPayload = {
                     mode: "check_kandidaten",
                     mode_create: "create_kontakt_candidate",
-                    firstName: nameParts[0] || "",
-                    lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+                    firstName,
+                    lastName,
                     jobTitle: response.data.position || "",
                     profileImage: response.data.profileImage || "",
                     recruiter_name: recruiter.rName || "Unbekannt",
@@ -870,19 +947,24 @@ if (btnTabKandidat) {
 
 
 if (saveCandidateBtn) {
+    saveCandidateBtn.dataset.busy = "0";
     saveCandidateBtn.addEventListener('click', async () => {
-        const file = fileInput.files[0];
+        if (saveCandidateBtn.dataset.busy === "1") return;
+
+        const file = fileInput && fileInput.files ? fileInput.files[0] : null;
         if (!file) {
             showError("Bitte erst eine Datei auswählen.");
             return;
         }
 
-        saveCandidateBtn.disabled = true;
-        saveCandidateBtn.textContent = "Sende Daten & Datei... ⏳";
+        saveCandidateBtn.dataset.busy = "1";
+        setSaveCandidateLoadingState(true, "Verarbeite PDF...");
+        startCandidateProgress("Verarbeite PDF...");
 
         try {
             // 1. Datei in Base64 umwandeln
             const fileBase64 = await getBase64(file);
+            updateCandidateProgress("Lade Profildaten...");
             
             // 2. Scraper aufrufen
             const scrape = await scrapeDataLinkedBase();
@@ -890,7 +972,7 @@ if (saveCandidateBtn) {
             if (scrape && scrape.data) {
                 // Recruiter Daten abrufen
                 const recruiter = await getRecruiterData();
-                const nameParts = scrape.data.fullName.split(/\s+/);
+                const { firstName, lastName } = getNameParts(scrape.data.fullName);
 
                 // 3. Payload zusammenbauen (Datei + Scraper Daten)
                 // WICHTIG: Wir nutzen scrape.data (nicht response.data!)
@@ -900,8 +982,8 @@ if (saveCandidateBtn) {
                     source: "resume_upload",
                     fileName: file.name,
                     fileData: fileBase64,
-                    firstName: nameParts[0] || "",
-                    lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+                    firstName,
+                    lastName,
                     jobTitle: scrape.data.position || "",
                     profileImage: scrape.data.profileImage || "",
                     recruiter_name: recruiter.rName || "Unbekannt",
@@ -912,9 +994,12 @@ if (saveCandidateBtn) {
                 console.log("Sende Paket an n8n:", payload);
 
                 // 4. Absenden an n8n (Nutzt deine zentrale sendToN8n Methode)
+                setSaveCandidateLoadingState(true, "Sende an Vincere...");
+                updateCandidateProgress("Sende Daten an Vincere...");
                 const n8nResult = await sendToN8n(payload);
 
                 if (n8nResult) { // Wenn sendToN8n Erfolg meldet (nicht null)
+                    stopCandidateProgress();
                     statusDiv.innerHTML = `<span style="color:green;">✅ Kandidat & Datei erfolgreich angelegt!</span>`;
                     setTimeout(() => {
                         statusDiv.innerText = "";
@@ -929,11 +1014,13 @@ if (saveCandidateBtn) {
                 showError("Keine Profildaten gefunden. Bitte LinkedIn Profil prüfen.");
             }
         } catch (error) {
+            stopCandidateProgress();
             console.error("Upload Fehler:", error);
             showError("Kritischer Fehler beim Upload: " + error.message);
         } finally {
-            saveCandidateBtn.disabled = false;
-            saveCandidateBtn.textContent = "Kandidat anlegen ➕";
+            stopCandidateProgress();
+            saveCandidateBtn.dataset.busy = "0";
+            setSaveCandidateLoadingState(false, saveCandidateDefaultLabel);
         }
     });
 }
@@ -958,9 +1045,12 @@ if (saveCandidateBtn) {
         switchView(sectionKontakt);
         statusDiv.innerHTML = "🔍 Scrape Profil & prüfe Duplikate...";
         
-        // Button deaktivieren während des Prozesses
-        // btnSaveContact.disabled = false;
+        // Button deaktivieren waehrend des Prozesses
+        if (btnSaveContact) {
+        btnSaveContact.disabled = true;
         btnSaveContact.style.opacity = "0.5";
+        btnSaveContact.dataset.ready = "0";
+        }
 
         try {
             // 2. Den Scraper aufrufen (deine existierende Methode)
@@ -973,14 +1063,14 @@ if (saveCandidateBtn) {
                 
                 // Recruiter Daten abrufen
                 const recruiter = await getRecruiterData();
-                const nameParts = response.data.fullName.split(/\s+/);
+                const { firstName, lastName } = getNameParts(response.data.fullName);
                 
                 // Payload für n8n zusammenbauen
                 currentContactPayload = {
                     mode: "check_kontakten",
                     mode_create: "create_kontakt_candidate",
-                    firstName: nameParts[0] || "",
-                    lastName: nameParts.length > 1 ? nameParts.slice(1).join(" ") : "",
+                    firstName,
+                    lastName,
                     jobTitle: response.data.position || "",
                     profileImage: response.data.profileImage || "",
                     recruiter_name: recruiter.rName || "Unbekannt",
@@ -1005,6 +1095,7 @@ if (saveCandidateBtn) {
 }
 // Hilfsfunktion: Befüllt die KONTAKT-Felder und zeigt das BILD an
 function fillContactFields(data) {
+    if (!data || typeof data !== "object") return;
     const nameInput = document.getElementById("contact_fullname");
     const jobInput = document.getElementById("contact_jobtitle");
     const imgDisplay = document.getElementById("contact_image_display");
@@ -1042,44 +1133,56 @@ function fillContactFields(data) {
 // 1. Zentrale Methode für den API-Aufruf
 // 1. Zentrale Methode für den API-Aufruf
 async function sendToN8n(payload) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 70000);
+
   try {
+    if (!payload || typeof payload !== "object") {
+      throw new Error("Ungueltige Payload fuer n8n.");
+    }
+
     const response = await fetch(
       "https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal
       }
     );
 
-    // optional: Status/Headers debuggen (ohne Body zu lesen)
+    const rawBody = await response.text().catch(() => "");
+
+    // optional: Status/Headers debuggen
     console.log("Antwort-Status:", response.status, response.statusText);
 
     if (!response.ok) {
-      const errText = await response.text().catch(() => "");
       throw new Error(
-        `Netzwerk-Antwort war nicht ok (HTTP ${response.status})${errText ? `: ${errText}` : ""}`
+        `Netzwerk-Antwort war nicht ok (HTTP ${response.status})${rawBody ? `: ${rawBody}` : ""}`
       );
     }
 
-    // Body nur EINMAL lesen:
-    const contentType = response.headers.get("content-type") || "";
-
-    if (response.status === 204) return null; // No Content
-
-    if (contentType.includes("application/json")) {
-      const data = await response.json();
-      console.log("Antwort von n8n (json):", data);
-      return data;
+    // Leere Antworten als erfolgreichen No-Body-Response behandeln
+    if (!rawBody || !rawBody.trim()) {
+      return { ok: true, status: response.status, empty: true };
     }
 
-    const text = await response.text();
-    console.log("Antwort von n8n (text):", text);
-    return text;
+    try {
+      const data = JSON.parse(rawBody);
+      console.log("Antwort von n8n (json):", data);
+      return data;
+    } catch (parseError) {
+      console.warn("n8n lieferte kein gueltiges JSON, Rohtext wird verwendet.");
+      console.log("Antwort von n8n (text):", rawBody);
+      return { ok: true, status: response.status, text: rawBody };
+    }
   } catch (error) {
+    const isTimeout = error && error.name === "AbortError";
     console.error("Fehler beim n8n-Aufruf:", error);
-    showError("Verbindung zu n8n fehlgeschlagen.");
+    showError(isTimeout ? "n8n-Request Timeout nach 70 Sekunden." : "Verbindung zu n8n fehlgeschlagen.");
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
  
@@ -1100,26 +1203,42 @@ async function checkDuplicateInN8n(payload, testMode) {
     }
 
     const result = await sendToN8n(payload);
-    if (!result) return;
+    if (result === null) return;
 
     const check = Array.isArray(result) ? result[0] : result;
+    if (!check || typeof check !== "object" || !Object.prototype.hasOwnProperty.call(check, "is_empty")) {
+        console.error("Unerwartete Antwort fuer Duplikatpruefung:", check);
+        showError("Unerwartete Antwort aus n8n bei Duplikatpruefung.");
+        return;
+    }
+    const isCandidateMode = testMode === "save_kandidaten" || testMode === "save_kandidat";
+    const isEmpty = check.is_empty === true || check.is_empty === "true" || check.is_empty === 1;
 
     // Weiche: Blendet je nach Modus das richtige UI ein
     // Weiche: Blendet je nach Modus das richtige UI ein
     const showFormArea = () => {
         console.log("Versuche Formular einzublenden für Modus:", testMode); // <-- Hilft dir bei der Fehlersuche
 
-        if (testMode === "save_kandidaten" || testMode === "save_kandidat") {
+        if (isCandidateMode) {
             const dropArea = document.getElementById("drop-area");
             const saveCandBtn = document.getElementById("saveCandidateBtn");
             if (dropArea) dropArea.classList.remove("hidden");
-            if (saveCandBtn) saveCandBtn.classList.remove("hidden");
+            if (saveCandBtn) {
+            saveCandBtn.classList.remove("hidden");
+            saveCandBtn.disabled = false;
+            saveCandBtn.dataset.busy = "0";
+            }
             
         } else if (testMode === "save_kontakten") {
             const contactForm = document.getElementById("contact-form-area");
             
             if (contactForm) {
                 contactForm.classList.remove("hidden");
+                if (btnSaveContact) {
+            btnSaveContact.disabled = false;
+            btnSaveContact.style.opacity = "1";
+            btnSaveContact.dataset.ready = "1";
+        }
                 console.log("Kontakt-Formular erfolgreich eingeblendet!");
             } else {
                 console.error("Fehler: Das HTML-Element mit id='contact-form-area' wurde nicht gefunden.");
@@ -1129,15 +1248,15 @@ async function checkDuplicateInN8n(payload, testMode) {
         }
     };
 
-    if (check.is_empty === true) {
+    if (isEmpty) {
         // KEIN DUPLIKAT
-        const typeName = testMode === "save_kandidaten" ? "Kandidat" : "Kontakt";
+        const typeName = isCandidateMode ? "Kandidat" : "Kontakt";
         statusDiv.innerHTML = `<span style='color:green;'>✅ ${typeName} ist neu. Bereit zum Anlegen.</span>`;
         
         showFormArea(); // Formular einblenden
     } else {
         // DUPLIKAT GEFUNDEN
-        const typeName = testMode === "save_kandidaten" ? "Kandidat" : "Kontakt";
+        const typeName = isCandidateMode ? "Kandidat" : "Kontakt";
         statusDiv.innerHTML = `
             <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; border:1px solid #ffeeba; margin-top:10px;">
                 <strong>⚠️ ${typeName} existiert bereits im System!</strong><br> Trotzdem neu anlegen?
@@ -1147,20 +1266,30 @@ async function checkDuplicateInN8n(payload, testMode) {
                 </div>
             </div>`;
 
-        document.getElementById("btn-force-save").onclick = () => {
+        const forceSaveBtn = document.getElementById("btn-force-save");
+        const cancelSaveBtn = document.getElementById("btn-cancel-save");
+
+        if (forceSaveBtn) forceSaveBtn.onclick = () => {
             statusDiv.innerHTML = `<span style='color:orange;'>⚠️ Duplikat-Modus: Bitte Daten prüfen und anlegen.</span>`;
             
             showFormArea(); // Formular nach "Ja" Klick einblenden
 
             // WICHTIG: Hier den Button wieder entsperren!
-            const btnSaveContact = document.getElementById("saveContactBtn");
-            if (btnSaveContact) {
-                // btnSaveContact.disabled = false;
-               // btnSaveContact.style.opacity = "1";
+            const saveContactButton = document.getElementById("saveContactBtn");
+            if (saveContactButton) {
+               saveContactButton.disabled = false;
+               saveContactButton.style.opacity = "1";
+               saveContactButton.dataset.ready = "1";
+
             }
         };
 
-        document.getElementById("btn-cancel-save").onclick = () => {
+        if (cancelSaveBtn) cancelSaveBtn.onclick = () => {
+            if (btnSaveContact) {
+            btnSaveContact.disabled = true;
+            btnSaveContact.style.opacity = "0.5";
+            btnSaveContact.dataset.ready = "0";
+            }
             switchView(viewMenu);
             statusDiv.innerText = "";
         };
@@ -1169,13 +1298,46 @@ async function checkDuplicateInN8n(payload, testMode) {
 
 // 4. Der Speicher-Button Event Listener
 if (btnSaveContact) {
+    btnSaveContact.disabled = true;
+    btnSaveContact.dataset.ready = "0";
+    btnSaveContact.dataset.saving = "0";
+    btnSaveContact.style.opacity = "0.5";
     btnSaveContact.addEventListener("click", async () => {
+        if (btnSaveContact.dataset.saving === "1") return;
+
+        if (!currentContactPayload || typeof currentContactPayload !== "object") {
+            showError("Kein Kontakt-Payload vorhanden. Bitte Profil neu laden.");
+            return;
+        }
+        if (btnSaveContact.dataset.ready !== "1") {
+            showError("Kontakt ist noch nicht freigegeben.");
+            return;
+        }
+
+        btnSaveContact.dataset.saving = "1";
+        btnSaveContact.disabled = true;
+        const previousText = btnSaveContact.textContent;
+        btnSaveContact.textContent = "Speichere in Vincere...";
         statusDiv.innerHTML = "⏳ Speichere in Vincere...";
-        currentContactPayload.mode = "save_kontakten";
 
-
-        const result = await sendToN8n(currentContactPayload);
-        if (result) handleSaveSuccess();
+        try {
+            const payloadToSave = { ...currentContactPayload, mode: "save_kontakten" };
+            const result = await sendToN8n(payloadToSave);
+            if (result !== null) {
+                btnSaveContact.dataset.ready = "0";
+                handleSaveSuccess();
+            } else {
+                showError("Fehler beim Speichern in Vincere.");
+            }
+        } catch (error) {
+            console.error("Fehler beim Kontakt-Speichern:", error);
+            showError(error.message || "Fehler beim Speichern in Vincere.");
+        } finally {
+            btnSaveContact.dataset.saving = "0";
+            btnSaveContact.textContent = previousText || "Kontakt in Vincere anlegen";
+            btnSaveContact.disabled = btnSaveContact.dataset.ready !== "1";
+            btnSaveContact.style.opacity = btnSaveContact.disabled ? "0.5" : "1";
+        }
     });
 }
 
@@ -1246,6 +1408,10 @@ if (btnBackContact) {
 
 // --- 2. DIE SWITCH-FUNKTION (Erweitert) ---
 function switchView(targetView) {
+    stopCandidateProgress();
+    setSaveCandidateLoadingState(false, saveCandidateDefaultLabel);
+    if (saveCandidateBtn) saveCandidateBtn.dataset.busy = "0";
+
     const allViews = [
         viewMenu, viewGenerator, viewJobMatching, 
         viewSettings, sectionKandidat, sectionKontakt
@@ -1263,11 +1429,12 @@ function switchView(targetView) {
             const dropArea = document.getElementById("drop-area");
             const saveCandBtn = document.getElementById("saveCandidateBtn");
             const fileInfo = document.getElementById("file-info-container");
+            const resumeUpload = document.getElementById("resume_upload");
             
             if (dropArea) dropArea.classList.add("hidden");
             if (saveCandBtn) saveCandBtn.classList.add("hidden");
             if (fileInfo) fileInfo.classList.add("hidden");
-            document.getElementById("resume_upload").value = "";
+            if (resumeUpload) resumeUpload.value = "";
         }
         
         // RESET Kontakt-UI

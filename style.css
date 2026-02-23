@@ -415,6 +415,19 @@ header h2 {
 
 }
 
+.main-btn.loading,
+.main-btn.loading:disabled {
+
+  background: var(--platform-gradient) !important;
+
+  color: #ffffff;
+
+  cursor: wait;
+
+  opacity: 1;
+
+}
+
 
 
 /* ========================================
@@ -1138,6 +1151,16 @@ input[type="text"]#job_id_input_message {
   align-items: center;
 
   gap: 8px;
+
+}
+
+.candidate-progress-note {
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+
+  font-weight: 500;
 
 }
 
