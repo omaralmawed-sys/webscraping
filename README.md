@@ -10,9 +10,25 @@ Recruiting Tools is a Chrome extension designed to streamline the recruitment pr
 * **Profile Scraping:** Extracts detailed candidate information including experience, education, skills, and languages.
 * **AI-Powered Message Generation:** Generates personalized recruitment messages based on candidate profiles and job descriptions.
 * **Job Matching Analysis:** Analyzes candidate fit for specific job IDs, providing pros, cons, and a recommendation score.
+* **Kontakt/Kandidat Creation Flow:** Create contacts and candidates directly in Vincere from the popup.
+* **Duplicate Check Before Save:** Checks existing records in n8n/Vincere before saving, with a user-confirmed override.
+* **Resume Upload for Kandidat:** Upload `.pdf`, `.docx`, or `.doc` files and send them together with scraped profile data.
+* **Live Progress + Better Request Handling:** Shows progress while saving candidates and supports long-running n8n requests with improved timeout/error handling.
 * **Background Processing:** Scrapes LinkedIn profiles in a background tab to ensure stability and data completeness.
 * **Platform Detection:** Automatically detects the current platform (LinkedIn or XING) and adjusts styling and scraping logic.
+* **Platform Mode Notification:** Shows a short in-popup notification when platform mode changes (LinkedIn/XING/Unknown).
 * **Cooldown System:** Prevents API abuse with a built-in cooldown timer for actions.
+* **Recruiter Name Guard:** Requires and stores recruiter name before enabling core actions.
+
+## What's New (Recent Updates)
+
+* Added dedicated menu sections for **Kandidat anlegen** and **Kontakt anlegen**.
+* Added LinkedIn candidate/contact prefill (name, job title, profile image, profile URL).
+* Added duplicate-check workflow (`check_kandidaten` / `check_kontakten`) before save.
+* Added create workflow (`save_kandidaten` / `save_kontakten`) including optional force-save on duplicates.
+* Added upload UI with file remove/reset and loading states for candidate creation.
+* Added platform switch notification and UI polish updates in popup styling.
+* Added robust n8n response handling for empty responses and non-JSON payloads.
 
 ## Installation
 
@@ -30,6 +46,7 @@ Recruiting Tools is a Chrome extension designed to streamline the recruitment pr
 * `background.js`: Service worker handling background tasks, specifically for reliable LinkedIn scraping.
 * `content-linkedin.js`: Content script for scraping data from LinkedIn profiles.
 * `content-xing.js`: Content script for scraping data from XING profiles.
+* `kandidaten-anlegen.js`: Dedicated LinkedIn scraper used for candidate/contact creation workflows.
 * `style.css`: Styles for the popup interface.
 * `icon1.png`: Extension icon.
 
@@ -46,15 +63,26 @@ Recruiting Tools is a Chrome extension designed to streamline the recruitment pr
     * Enter a Job ID.
     * Click **"Job Matching abrufen"**.
 5.  **Recreate Message:** Use the "Nachricht anpassen" feature to refine the generated message.
+6.  **Kontakt anlegen:**
+    * Open "Kontakt anlegen".
+    * Let the extension scrape and prefill profile data.
+    * Confirm duplicate check result and click **"Kontakt in Vincere anlegen"**.
+7.  **Kandidat anlegen:**
+    * Open "Kandidat anlegen".
+    * Wait for duplicate check.
+    * Upload CV (`.pdf`, `.docx`, `.doc`) and click **"Kandidat anlegen"**.
 
 ## Technical Details
 
 ### Scraping Logic
 * **XING:** Scrapes data directly from the active tab using `content-xing.js`.
 * **LinkedIn:** Uses a robust background scraping method. The extension opens the profile in a background tab, injects `content-linkedin.js`, and retrieves the data to avoid context invalidation issues.
+* **Kandidat/Kontakt Creation:** Uses a dedicated scrape flow to collect profile basics (name, title, image, URL) before duplicate check and save operations.
 
 ### API Integration
-The extension communicates with an n8n webhook (`https://xingproxy-842321698577.europe-west1.run.app/xing`) to process the scraped data and generate responses using AI.
+The extension communicates with n8n webhooks for different workflows:
+* Message generation / matching: `https://xingproxy-842321698577.europe-west1.run.app/xing`
+* Candidate/contact duplicate check and save: `https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649`
 
 ## Permissions
 

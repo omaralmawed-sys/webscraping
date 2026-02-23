@@ -747,6 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let candidateProgressTimerId = null;
         let candidateProgressSeconds = 0;
         let candidateProgressLabel = "";
+        
         const getNameParts = (fullName) => {
         const normalizedName = typeof fullName === "string" ? fullName.trim() : "";
         if (!normalizedName) return { firstName: "", lastName: "" };
@@ -821,6 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInfoContainer.classList.add('hidden');
         fileInfoContainer.style.display = "none"; // Sicherstellen, dass es weg ist
         }
+
         if (saveCandidateBtn) {
         saveCandidateBtn.classList.add('hidden');
         saveCandidateBtn.dataset.busy = "0";
@@ -1142,7 +1144,7 @@ async function sendToN8n(payload) {
     }
 
     const response = await fetch(
-      "https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649",
+      "https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649", //API_URL
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
