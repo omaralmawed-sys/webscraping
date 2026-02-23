@@ -959,7 +959,7 @@ if (saveCandidateBtn) {
         statusDiv.innerHTML = "🔍 Scrape Profil & prüfe Duplikate...";
         
         // Button deaktivieren während des Prozesses
-        btnSaveContact.disabled = true;
+        // btnSaveContact.disabled = false;
         btnSaveContact.style.opacity = "0.5";
 
         try {
@@ -1040,26 +1040,49 @@ function fillContactFields(data) {
     }, 2000);
 }
 // 1. Zentrale Methode für den API-Aufruf
+// 1. Zentrale Methode für den API-Aufruf
 async function sendToN8n(payload) {
-    try {
-        const response = await fetch("https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
+  try {
+    const response = await fetch(
+      "https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
 
-        if (!response.ok) throw new Error("Netzwerk-Antwort war nicht ok");
-        
-        console.log("Antwort von n8n:", response.json());  
-        return await response.json();
+    // optional: Status/Headers debuggen (ohne Body zu lesen)
+    console.log("Antwort-Status:", response.status, response.statusText);
 
-          
-    } catch (error) {
-        console.error("Fehler beim n8n-Aufruf:", error);
-        showError("Verbindung zu n8n fehlgeschlagen.");
-        return null;
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(
+        `Netzwerk-Antwort war nicht ok (HTTP ${response.status})${errText ? `: ${errText}` : ""}`
+      );
     }
-}   
+
+    // Body nur EINMAL lesen:
+    const contentType = response.headers.get("content-type") || "";
+
+    if (response.status === 204) return null; // No Content
+
+    if (contentType.includes("application/json")) {
+      const data = await response.json();
+      console.log("Antwort von n8n (json):", data);
+      return data;
+    }
+
+    const text = await response.text();
+    console.log("Antwort von n8n (text):", text);
+    return text;
+  } catch (error) {
+    console.error("Fehler beim n8n-Aufruf:", error);
+    showError("Verbindung zu n8n fehlgeschlagen.");
+    return null;
+  }
+}
+ 
 
 // 2. Hilfsfunktion für die Erfolgsmeldung (auch mehrfach genutzt)
 function handleSaveSuccess() {
@@ -1132,8 +1155,8 @@ async function checkDuplicateInN8n(payload, testMode) {
             // WICHTIG: Hier den Button wieder entsperren!
             const btnSaveContact = document.getElementById("saveContactBtn");
             if (btnSaveContact) {
-                btnSaveContact.disabled = false;
-                btnSaveContact.style.opacity = "1";
+                // btnSaveContact.disabled = false;
+               // btnSaveContact.style.opacity = "1";
             }
         };
 
