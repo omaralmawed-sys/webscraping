@@ -919,7 +919,8 @@ if (btnTabKandidat) {
                 
                 // Payload für n8n zusammenbauen
                 currentContactPayload = {
-                    mode: "check_kandidaten",
+                    mode: "check kontakten / kandidaten",
+                    item:"kandidate",
                     mode_create: "create_kontakt_candidate",
                     firstName,
                     lastName,
@@ -979,7 +980,8 @@ if (saveCandidateBtn) {
                 // 3. Payload zusammenbauen (Datei + Scraper Daten)
                 // WICHTIG: Wir nutzen scrape.data (nicht response.data!)
                 const payload = {
-                    mode: "save_kandidaten",
+                    mode: "save kontakten / kandidaten",
+                    item:"kandidate",
                     mode_create: "create_kontakt_candidate",
                     source: "resume_upload",
                     fileName: file.name,
@@ -1005,11 +1007,9 @@ if (saveCandidateBtn) {
                     statusDiv.innerHTML = `<span style="color:green;">✅ Kandidat & Datei erfolgreich angelegt!</span>`;
                     setTimeout(() => {
                         statusDiv.innerText = "";
-                        // resetUpload(); // Falls du diese Funktion hast
+                        resetUpload(); // Falls du diese Funktion hast
                         switchView(viewMenu);
                     }, 3000);
-                } else {
-                    showError("Fehler beim Senden an n8n.");
                 }
 
             } else {
@@ -1069,8 +1069,9 @@ if (saveCandidateBtn) {
                 
                 // Payload für n8n zusammenbauen
                 currentContactPayload = {
-                    mode: "check_kontakten",
+                    mode: "check kontakten / kandidaten",
                     mode_create: "create_kontakt_candidate",
+                    item:"kontakten",
                     firstName,
                     lastName,
                     jobTitle: response.data.position || "",
@@ -1082,7 +1083,7 @@ if (saveCandidateBtn) {
 
                 // 4. Duplikatsprüfung in n8n starten
                 // (Nutzt die optimierte Funktion aus unserer vorherigen Nachricht)
-                await checkDuplicateInN8n(currentContactPayload,"save_kontakten");
+                await checkDuplicateInN8n(currentContactPayload,"save kontakten / kandidaten");
                 
             } else {
                 showError("Keine Daten vom Profil erhalten.");
@@ -1164,9 +1165,11 @@ async function sendToN8n(payload) {
       );
     }
 
-    // Leere Antworten als erfolgreichen No-Body-Response behandeln
+    // Wenn n8n leer antwortet, den Nutzer klar informieren.
     if (!rawBody || !rawBody.trim()) {
-      return { ok: true, status: response.status, empty: true };
+      console.warn("n8n hat eine leere Antwort zurueckgegeben.");
+      showError("Keine Antwort von n8n erhalten. Bitte erneut versuchen.");
+      return null;
     }
 
     try {
@@ -1216,22 +1219,29 @@ async function checkDuplicateInN8n(payload, testMode) {
     const isCandidateMode = testMode === "save_kandidaten" || testMode === "save_kandidat";
     const isEmpty = check.is_empty === true || check.is_empty === "true" || check.is_empty === 1;
 
-    // Weiche: Blendet je nach Modus das richtige UI ein
+    const showCandidateUploadArea = () => {
+        const candidateSection = document.getElementById("section-kandidat");
+        const candidateCard = candidateSection ? candidateSection.querySelector(".card") : null;
+        const dropArea = document.getElementById("drop-area");
+        const saveCandBtn = document.getElementById("saveCandidateBtn");
+
+        if (candidateCard) candidateCard.classList.remove("hidden");
+        if (dropArea) dropArea.classList.remove("hidden");
+        if (saveCandBtn) {
+            saveCandBtn.classList.remove("hidden");
+            saveCandBtn.disabled = false;
+            saveCandBtn.dataset.busy = "0";
+        }
+    };
+
     // Weiche: Blendet je nach Modus das richtige UI ein
     const showFormArea = () => {
         console.log("Versuche Formular einzublenden für Modus:", testMode); // <-- Hilft dir bei der Fehlersuche
 
         if (isCandidateMode) {
-            const dropArea = document.getElementById("drop-area");
-            const saveCandBtn = document.getElementById("saveCandidateBtn");
-            if (dropArea) dropArea.classList.remove("hidden");
-            if (saveCandBtn) {
-            saveCandBtn.classList.remove("hidden");
-            saveCandBtn.disabled = false;
-            saveCandBtn.dataset.busy = "0";
-            }
+            showCandidateUploadArea();
             
-        } else if (testMode === "save_kontakten") {
+        } else if (testMode === "save kontakten / kandidaten") {
             const contactForm = document.getElementById("contact-form-area");
             
             if (contactForm) {
@@ -1323,13 +1333,11 @@ if (btnSaveContact) {
         statusDiv.innerHTML = "⏳ Speichere in Vincere...";
 
         try {
-            const payloadToSave = { ...currentContactPayload, mode: "save_kontakten" };
+            const payloadToSave = { ...currentContactPayload, mode: "save kontakten / kandidaten"};
             const result = await sendToN8n(payloadToSave);
             if (result !== null) {
                 btnSaveContact.dataset.ready = "0";
                 handleSaveSuccess();
-            } else {
-                showError("Fehler beim Speichern in Vincere.");
             }
         } catch (error) {
             console.error("Fehler beim Kontakt-Speichern:", error);
@@ -1423,16 +1431,25 @@ function switchView(targetView) {
         if (v) v.classList.add("hidden");
     });
 
+    // Status-Meldungen mit Aktionsbuttons (Duplikat-Warnung) nur in
+    // Kandidat/Kontakt anzeigen, nie im Startmenue oder anderen Views.
+    const isCandidateOrContactView = targetView === sectionKandidat || targetView === sectionKontakt;
+    if (!isCandidateOrContactView && statusDiv) {
+        statusDiv.innerHTML = "";
+    }
+
     if (targetView) {
         targetView.classList.remove("hidden");
 
         // RESET Kandidaten-UI
         if (targetView === sectionKandidat) {
+            const candidateCard = sectionKandidat.querySelector(".card");
             const dropArea = document.getElementById("drop-area");
             const saveCandBtn = document.getElementById("saveCandidateBtn");
             const fileInfo = document.getElementById("file-info-container");
             const resumeUpload = document.getElementById("resume_upload");
             
+            if (candidateCard) candidateCard.classList.add("hidden");
             if (dropArea) dropArea.classList.add("hidden");
             if (saveCandBtn) saveCandBtn.classList.add("hidden");
             if (fileInfo) fileInfo.classList.add("hidden");
