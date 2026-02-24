@@ -687,16 +687,33 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (output.status_color === 'green') { colorHex = "#188038"; bgColor = "#e6f4ea"; }
             else if (output.status_color === 'yellow') { colorHex = "#f29900"; bgColor = "#fff8e1"; }
 
-            const makeList = (arr) => arr && arr.length ? arr.map(i => `<li style="margin-bottom:4px;">${i}</li>`).join('') : '<li>-</li>';
+            const escapeHtml = (value) => String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+
+            const safeText = (value, fallback = "-") => {
+                const raw = String(value ?? "").trim();
+                return raw ? escapeHtml(raw) : fallback;
+            };
+
+            const makeList = (arr) => {
+                const items = Array.isArray(arr) && arr.length ? arr : ["-"];
+                return items
+                    .map(i => `<li style="margin-bottom:4px;">${safeText(i)}</li>`)
+                    .join('');
+            };
 
             const htmlContent = `
                 <div style="border-left: 5px solid ${colorHex}; background: #fff; padding: 8px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                    <h3 style="color: ${colorHex}; margin: 0 0 5px 0; font-size: 16px;">${output.status_headline || "Analyse"}</h3>
+                    <h3 style="color: ${colorHex}; margin: 0 0 5px 0; font-size: 16px;">${safeText(output.status_headline, "Analyse")}</h3>
                     <div style="font-weight:bold; margin-bottom: 10px; color:#333;">
-                        Empfehlung: <span style="background:${bgColor}; padding:2px 6px; border-radius:4px; color:${colorHex}">${output.recommendation || "-"}</span>
+                        Empfehlung: <span style="background:${bgColor}; padding:2px 6px; border-radius:4px; color:${colorHex}">${safeText(output.recommendation)}</span>
                     </div>
                     <p style="font-size: 13px; line-height: 1.5; color: #555; margin-bottom: 15px; padding-bottom:10px; border-bottom:1px solid #eee;">
-                        ${output.summary || ""}
+                        ${safeText(output.summary, "")}
                     </p>
                     <div style="font-size: 13px;">
                         <div style="margin-bottom: 10px;">
