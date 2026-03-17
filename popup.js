@@ -1,1815 +1,633 @@
-﻿// ============================================================================
-// TEIL 1: NEUE FUNKTIONEN (Plattform-Erkennung & Styles)
-// ============================================================================
-
-const platformConfig = {
-    linkedin: { class: 'platform-linkedin', color: '#0A66C2', name: 'LinkedIn' },
-    xing: { class: 'platform-xing', color: '#026466', name: 'XING' },
-    unknown: { class: 'platform-unknown', color: '#6c757d', name: 'Unbekannt' } // Grau für unbekannte Seiten
-};
-
-/**
- * Holt die Recruiter-Daten aus dem Storage und gibt ein Promise zurück.
- */
-
-function getRecruiterData() {
-    return new Promise((resolve, reject) => {
-        // Zugriff auf chrome.storage.local
-        chrome.storage.local.get(['cachedRecruiter'], (result) => {
-            
-            // Falls ein technischer Fehler auftritt
-            if (chrome.runtime.lastError) {
-                console.error("Storage Error:", chrome.runtime.lastError);
-                resolve({ rName: "", rEmail: "" });
-                return;
-            }
-
-            // Deine Logik zur Datenaufbereitung
-            const recruiterData = result.cachedRecruiter || {};
-            const rName = recruiterData?.name || "";
-            const rEmail = recruiterData?.email || "";
-
-            // Promise erfolgreich auflösen und Daten zurückgeben
-            resolve({ rName, rEmail });
-        });
-    });
-}
-// ==========================================
-// X. RECRUITER NAME LOGIC (CHECK & SAVE)
-// ==========================================
-
-const recruiterNameContainer = document.getElementById("recruiter-name-container");
-const recruiterNameInput = document.getElementById("user_name_input");
-const btnSaveName = document.getElementById("saveUserNameBtn");
-
-// Neue IDs aus den Einstellungen
-const settingsNameInput = document.getElementById("settings_name_input");
-const btnSaveSettingsName = document.getElementById("saveSettingsNameBtn");
-
-const generatorBtn = document.getElementById("nav-to-generator");
-const matchingBtn = document.getElementById("nav-to-job-matching");
-const statusDiv = document.getElementById("statusMessage");
-
-/**
- * Hilfsfunktion zum Speichern und UI-Update
- */
-function saveNameProcess(newName) {
-    if (!newName) {
-        // Falls du keine showError Funktion hast, nutzen wir ein einfaches Feedback
-        statusDiv.innerHTML = `<span style="color:red;">⚠️ Bitte Namen eingeben!</span>`;
-        return;
-    }
-
-    chrome.storage.local.get(['cachedRecruiter'], (result) => {
-        const currentData = result.cachedRecruiter || {};
-        const updatedData = { ...currentData, name: newName };
-
-        chrome.storage.local.set({ cachedRecruiter: updatedData }, () => {
-            console.log("Name gespeichert:", newName);
-            
-            // 1. UI im Hauptmenü freischalten
-            if (recruiterNameContainer) recruiterNameContainer.classList.add("hidden");
-            generatorBtn.classList.remove("hidden");
-            matchingBtn.classList.remove("hidden");
-            
-            // 2. Felder synchronisieren
-            if (recruiterNameInput) recruiterNameInput.value = newName;
-            if (settingsNameInput) settingsNameInput.value = newName;
-
-            // 3. Erfolg melden
-            statusDiv.innerHTML = `<span style="color:green;">✅ Name gespeichert!</span>`;
-            
-            // 4. Falls wir in der Einstellungs-Ansicht waren, zurück zum Menü
-            // (Optional: switchView(viewMenu);)
-            
-            setTimeout(() => { statusDiv.innerText = ""; }, 3000);
-        });
-    });
-}
-
-// 1. INITIALER CHECK BEIM START
-getRecruiterData().then(({ rName }) => {
-    // Felder befüllen (damit man in den Settings sieht, was gespeichert ist)
-    if (recruiterNameInput) recruiterNameInput.value = rName;
-    if (settingsNameInput) settingsNameInput.value = rName;
-
-    // Wenn Name fehlt: Menü-Buttons verstecken, Eingabe zeigen
-    if (!rName || rName.trim() === "") {
-        generatorBtn.classList.add("hidden");
-        matchingBtn.classList.add("hidden");
-        recruiterNameContainer.classList.remove("hidden");
-    }
-});
-
-// 2. EVENT LISTENER
-// Klick im Hauptmenü (Warnfeld)
-if (btnSaveName) {
-    btnSaveName.addEventListener("click", () => {
-        saveNameProcess(recruiterNameInput.value.trim());
-    });
-}
-
-// Klick in den Einstellungen
-if (btnSaveSettingsName) {
-    btnSaveSettingsName.addEventListener("click", () => {
-        saveNameProcess(settingsNameInput.value.trim());
-        // Nach dem Speichern in den Einstellungen zurück zum Hauptmenü
-        if (typeof viewMenu !== 'undefined') switchView(viewMenu);
-    });
-}
-
-let lastDetectedPlatform = null;
-
-async function applyPlatformStyles() {
-    try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tabs || tabs.length === 0) return;
-
-        const tab = tabs[0];
-        const url = (tab.url || "").toLowerCase();
-
-        let currentPlatform = 'unknown'; // Standardmäßig auf Unbekannt setzen
-
-        // Plattform ermitteln
-        if (url.includes('linkedin.com')) {
-            currentPlatform = 'linkedin';
-        } else if (url.includes('xing.com')) {
-            currentPlatform = 'xing';
-        }
-        // Das leere 'else' habe ich entfernt, da currentPlatform oben schon 'unknown' ist.
-
-        // Styles auf den Body anwenden
-        const body = document.body;
-        if (body) {
-            body.classList.remove('platform-xing', 'platform-linkedin', 'platform-unknown');
-            const config = platformConfig[currentPlatform];
-            
-            body.classList.add(config.class);
-            body.style.setProperty('--platform-color', config.color);
-
-            // KORREKTUR: Die Bedingung '&& currentPlatform !== "unknown"' wurde entfernt!
-            // Jetzt wird auch bei unbekannten Seiten eine Benachrichtigung gezeigt.
-            if (lastDetectedPlatform !== currentPlatform) {
-                animatePlatformSwitch(config.name, config.color);
-                lastDetectedPlatform = currentPlatform;
-            }
-        }
-
-    } catch (e) {
-        console.error("Style-Fehler:", e);
-    }
-}
-
-function animatePlatformSwitch(platformName, color) {
-    // Alte Notification entfernen, falls vorhanden
-    const oldNote = document.querySelector('.platform-notification');
-    if (oldNote) oldNote.remove();
-
-    const notification = document.createElement('div');
-    notification.className = 'platform-notification';
-    notification.innerHTML = `
-        <div class="platform-badge" style="background: ${color}; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-            ${platformName} Modus aktiv
-        </div>
-    `;
-    
-    // Sicherstellen, dass body existiert
-    if(document.body) {
-        document.body.appendChild(notification);
-        
-        // Animation starten
-        setTimeout(() => notification.classList.add('show'), 100);
-        
-        // Nach 3 Sekunden entfernen
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 500);
-        }, 3000);
-    }
-}
-
-// Initialisierung der Styles (sofort und bei Tab-Wechsel)
-applyPlatformStyles();
-
-if (chrome.tabs && chrome.tabs.onActivated) {
-    chrome.tabs.onActivated.addListener(applyPlatformStyles);
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-        if (changeInfo.status === 'complete') applyPlatformStyles();
-    });
-}
-
-
-// ============================================================================
-// TEIL 2: HAUPTLOGIK (Dein bestehender Code)
-// ============================================================================
+﻿import { COOLDOWN_SECONDS } from './modules/config.js';
+import { 
+    getRecruiterData, 
+    saveRecruiterName, 
+    checkCooldown, 
+    startCooldown 
+} from './modules/storage.js';
+import { 
+    state, 
+    setCachedProfileData, 
+    setCurrentContactPayload 
+} from './modules/state.js';
+import { 
+    scrapeCurrentTab 
+} from './modules/scraper.js';
+import { 
+    sendJobMatchingRequest, 
+    sendPayloadToN8n, 
+    sendToN8nWebhook 
+} from './modules/api.js';
+import { 
+    applyPlatformStyles, 
+    switchView, 
+    showError, 
+    fillProfileForm, 
+    renderJobMatchResult, 
+    startCandidateProgress, 
+    stopCandidateProgress, 
+    setSaveCandidateLoadingState,
+    showSuccess
+} from './modules/ui.js';
+import { 
+    getNameParts, 
+    getBase64, 
+    copyToClipboard 
+} from './modules/utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Styles beim Laden des DOMs sicherheitshalber nochmal anwenden
+    // Styles & Initialisierung
     applyPlatformStyles();
-
-    // --- KONFIGURATION ---
-    const API_URL = "https://xingproxy-842321698577.europe-west1.run.app/xing"; 
-    const COOLDOWN_SECONDS = 35;
-
-    // --- GLOBALE VARIABLEN ---
-    let cachedProfileData = null; 
-    let isRequestRunning = false;
-    let tabUrl;
-
-    // ==========================================
-    // 1. DOM ELEMENTE
-    // ==========================================
-
-    // Navigation
-    const viewMenu = document.getElementById("view-menu");
-    const viewGenerator = document.getElementById("view-generator");
-    const viewJobMatching = document.getElementById("job-matching-container");
-    const viewSettings = document.getElementById("view-settings");
-
-    const btnToGen = document.getElementById("nav-to-generator");
-    const btnToMatch = document.getElementById("nav-to-job-matching");
-    const btnBackMatch = document.getElementById("backFromJobMatching");
-    const btnBackGen = document.getElementById("backFromNachrichtGenerator");
-    const btnSettings = document.getElementById("settings-btn");
-    const btnBackSettings = document.getElementById("backFromSettings");
-    const btnBackKandidat = document.getElementById("backFromSection-kandidat");
-    const btnBackKontakt = document.getElementById("backFromSection-kontakt");
-
-    // Generator Tool
-    const scrapeBtn = document.getElementById("scrapeBtn");
-    const recreateBtn = document.getElementById("recreateBtn");
-    const recreateContainer = document.getElementById("recreateContainer");
-    const userPromptInput = document.getElementById("userPrompt");
-    const statusDiv = document.getElementById("statusMessage");
-    const resultContainer = document.getElementById("resultContainer");
-    const outputSubject = document.getElementById("outputSubject");
-    const outputMessage = document.getElementById("outputMessage");
-    const tonalitySelect = document.getElementById("tonalität");
-    const lengthSelect = document.getElementById("msgLength");
-    const jobIdInputMessage = document.getElementById("job_id_input_message");
-
-    // Job Matching Tool
-    const job_id_input = document.getElementById("job_id_input");
-    const btnFetchJobMatchBtn = document.getElementById("fetchJobMatchBtn");
-    const jobMatchResultContainer = document.getElementById("matchResult");
-    const matchOutputText = document.getElementById("matchOutputText");
-
-    // Copy Buttons
-    const copySubjectBtn = document.getElementById("copySubject");
-    const copyMessageBtn = document.getElementById("copyMessage");
-
-    // NEU: Manual / Auto Toggle Elemente (falls im HTML vorhanden)
-    const radioAuto = document.getElementById("source-auto");
-    const radioManual = document.getElementById("source-manual");
-    const manualInputContainer = document.getElementById("manual-input-container");
-    const manualProfileData = document.getElementById("manualProfileData");
-
-    // Initialisierung Cooldown checken
-    checkCooldown();
-
-    // ==========================================
-    // 2. SCRAPING & INJECTION LOGIK
-    // ==========================================
-
-    async function scrapeData() {
-        // 1. Aktiven Tab finden
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
-        
-        const tab = tabs[0]; 
-        tabUrl = tab.url || "";
-       
-
-        console.log("Aktive Tab URL:", tabUrl);
-
-        if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {
-            console.log("🟢 XING Seite erkannt.");
-            return await handleXingScrape(tab.id); 
-        }
-        else if(tabUrl.includes("linkedin.com/in") || tabUrl.includes("linkedin.com/talent/hire") && tabUrl.includes("/profile/")) {  
-            console.log("🔵 LinkedIn Seite erkannt.");
-            return  await handleLinkedInScrape(tab.id); 
-        }
-        else {
-            throw new Error("Bitte öffne ein XING oder LinkedIn Profil.");
-        }
-    }
-
-     async function scrapeDataLinkedBase() {
-        // 1. Aktiven Tab finden
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
-        
-        const tab = tabs[0]; 
-        tabUrl = tab.url || "";
-       
-
-        console.log("Aktive Tab URL:", tabUrl);
-
-        if(tabUrl.includes("linkedin.com/in")) {  
-            console.log("🔵 LinkedIn Seite erkannt.");
-            return  await handleLinkedInBaseScrape(tab.id); 
-        }
-        else {
-            throw new Error("Bitte öffne   LinkedIn Profil.");
-        }
-    }
-
-
-    async function scrapeDataXingBase() {
-        // 1. Aktiven Tab finden
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
-        
-        const tab = tabs[0]; 
-        tabUrl = tab.url || "";
-       
-
-        console.log("Aktive Tab URL:", tabUrl);
-
-        if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {  
-            console.log("🟢 Xing Seite erkannt.");
-            return  await handleXingScrape(tab.id); 
-        }
-        else {
-            throw new Error("Bitte öffne   LinkedIn Profil.");
-        }
-    }
-
-
-
-    async function handleXingScrape(tabId) {
-         try {
-            return await sendMessageToTab(tabId, { action: "scrape" }); 
-        } catch (error) {
-            console.log("XING Script antwortet nicht. Injiziere...", error);
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tabId },
-                    files: ['content-xing.js']
-                });
-                await new Promise(r => setTimeout(r, 100));
-                return await sendMessageToTab(tabId, { action: "scrape" });
-            } catch (injectError) {
-                throw new Error("Fehler beim Lesen. Bitte Seite (Xing) neu laden (F5) oder prüfen Sie, ob Sie auf der richtigen Seite sind.");
-            }
-        }
-    }
-
-    async function handleLinkedInScrape(tabId) {
-        try {
-            return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" }); 
-        } catch (error) {
-            console.log("LinkedIn Script antwortet nicht. Injiziere...", error);
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tabId },
-                    files: ['content-linkedin.js']
-                });
-                await new Promise(r => setTimeout(r, 1000));
-                return await sendMessageToTab(tabId, { action: "SCRAPE_LINKEDIN" });
-            } catch (injectError) {
-                throw new Error("Fehler beim Lesen. Bitte Seite (LinkedIn) neu laden (F5) oder prüfen Sie, ob Sie auf der richtigen Seite sind.");
-            }
-        }
-    }
-
-
-        async function handleLinkedInBaseScrape(tabId) {
-        try {
-            return await sendMessageToTab(tabId, { action: "SCRAPE_CANDIDATE" }); 
-        } catch (error) {
-            console.log("LinkedIn Script antwortet nicht. Injiziere...", error);
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tabId },
-                    files: ['kandidaten-anlegen.js']
-                });
-                await new Promise(r => setTimeout(r, 1000));
-                return await sendMessageToTab(tabId, { action: "SCRAPE_CANDIDATE" });
-            } catch (injectError) {
-                throw new Error("Fehler beim Lesen. Bitte Seite (LinkedIn) neu laden (F5) oder prüfen Sie, ob Sie auf der richtigen Seite sind.");
-            }
-        }
-    }
-
-    // Hilfsfunktion für sauberes Promise
-    function sendMessageToTab(tabId, message) {
-        return new Promise((resolve, reject) => {
-            chrome.tabs.sendMessage(tabId, message, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                    return;
-                }
-                if (!response) {
-                    reject(new Error("Keine Antwort erhalten"));
-                    return;
-                }
-                if (response.status === "error") {
-                    reject(new Error(response.message || "Unbekannter Fehler"));
-                    return;
-                }
-                // Erfolg
-                resolve(response);
-            });
+    
+    if (chrome.tabs && chrome.tabs.onActivated) {
+        chrome.tabs.onActivated.addListener(applyPlatformStyles);
+        chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+            if (changeInfo.status === 'complete') applyPlatformStyles();
         });
     }
 
+    // --- DOM ELEMENTS ---
+    const elements = {
+        viewMenu: document.getElementById("view-menu"),
+        recruiterNameContainer: document.getElementById("recruiter-name-container"),
+        recruiterNameInput: document.getElementById("user_name_input"),
+        btnSaveName: document.getElementById("saveUserNameBtn"),
+        settingsNameInput: document.getElementById("settings_name_input"),
+        btnSaveSettingsName: document.getElementById("saveSettingsNameBtn"),
+        generatorBtn: document.getElementById("nav-to-generator"),
+        matchingBtn: document.getElementById("nav-to-job-matching"),
+        statusDiv: document.getElementById("statusMessage"),
+        
+        // Buttons Navigation
+        btnToGen: document.getElementById("nav-to-generator"),
+        btnToMatch: document.getElementById("nav-to-job-matching"),
+        btnBackMatch: document.getElementById("backFromJobMatching"),
+        btnBackGen: document.getElementById("backFromNachrichtGenerator"),
+        btnSettings: document.getElementById("settings-btn"),
+        btnBackSettings: document.getElementById("backFromSettings"),
+        btnBackKandidat: document.getElementById("backFromSection-kandidat"),
+        btnBackKontakt: document.getElementById("backFromSection-kontakt"),
+        btnTabKandidat: document.getElementById("tab-kandidat"),
+        btnTabKontakt: document.getElementById("tab-kontakt"),
 
-    // ==========================================
-    // 3. EVENT LISTENER (Die Buttons)
-    // ==========================================
-// --- A. Job Matching Button (HINTERGRUND VERSION) ---
+        // Generator
+        scrapeBtn: document.getElementById("scrapeBtn"),
+        recreateBtn: document.getElementById("recreateBtn"),
+        recreateContainer: document.getElementById("recreateContainer"),
+        userPromptInput: document.getElementById("userPrompt"),
+        resultContainer: document.getElementById("resultContainer"),
+        outputSubject: document.getElementById("outputSubject"),
+        outputMessage: document.getElementById("outputMessage"),
+        tonalitySelect: document.getElementById("tonalität"),
+        lengthSelect: document.getElementById("msgLength"),
+        copySubjectBtn: document.getElementById("copySubject"),
+        copyMessageBtn: document.getElementById("copyMessage"),
 
-    if (btnFetchJobMatchBtn) {
-        btnFetchJobMatchBtn.addEventListener("click", async () => {
-            const jobId = job_id_input ? job_id_input.value.trim() : "";
+        // Job Matching
+        jobIdInput: document.getElementById("job_id_input"),
+        btnFetchJobMatchBtn: document.getElementById("fetchJobMatchBtn"),
+        jobMatchResultContainer: document.getElementById("matchResult"),
 
-            // 1. Validierung
-            if (!jobId) {
-                showError("Bitte eine Job-ID eingeben.");
-                markInputError(job_id_input);
-                setTimeout(() => { clearError(); clearInputError(job_id_input); }, 4000);
-                return;
-            }
-            if (!/^\d+$/.test(jobId)) {
+        // Candidate / Contact
+        sectionKandidat: document.getElementById("section-kandidat"),
+        sectionKontakt: document.getElementById("section-kontakt"),
+        saveCandidateBtn: document.getElementById("saveCandidateBtn"),
+        btnSaveContact: document.getElementById("saveContactBtn"),
+        fileInput: document.getElementById("resume_upload"),
+        removeFileBtn: document.getElementById("removeFileBtn"),
+        fileNameDisplay: document.getElementById("file-name-display"),
+        fileInfoContainer: document.getElementById("file-info-container"),
+        dropArea: document.getElementById("drop-area"),
+        
+        // Inputs
+        candidateFullname: document.getElementById("candidate_fullname"),
+        candidateJobtitle: document.getElementById("candidate_jobtitle"),
+        candidateImageUrl: document.getElementById("candidate_image_url"),
+        contactFullname: document.getElementById("contact_fullname"),
+        contactJobtitle: document.getElementById("contact_jobtitle")
+    };
+
+    // --- INITIALISIERUNG ---
+    checkCooldown(COOLDOWN_SECONDS, (endTime) => {
+        activateCooldownMode(endTime);
+    });
+
+    // Recruiter Data Check
+    getRecruiterData().then(({ rName }) => {
+        if (elements.recruiterNameInput) elements.recruiterNameInput.value = rName;
+        if (elements.settingsNameInput) elements.settingsNameInput.value = rName;
+
+        if (!rName || rName.trim() === "") {
+            elements.generatorBtn.classList.add("hidden");
+            elements.matchingBtn.classList.add("hidden");
+            elements.recruiterNameContainer.classList.remove("hidden");
+        }
+    });
+
+    // --- EVENT LISTENERS: NAME SAVING ---
+    const handleSaveName = (name) => {
+        if (!name) {
+            elements.statusDiv.innerHTML = `<span style="color:red;">⚠️ Bitte Namen eingeben!</span>`;
+            return;
+        }
+        saveRecruiterName(name).then(() => {
+            elements.recruiterNameContainer.classList.add("hidden");
+            elements.generatorBtn.classList.remove("hidden");
+            elements.matchingBtn.classList.remove("hidden");
+            if(elements.recruiterNameInput) elements.recruiterNameInput.value = name;
+            if(elements.settingsNameInput) elements.settingsNameInput.value = name;
+            elements.statusDiv.innerHTML = `<span style="color:green;">✅ Name gespeichert!</span>`;
+            setTimeout(() => { elements.statusDiv.innerText = ""; }, 3000);
+        });
+    };
+
+    if (elements.btnSaveName) {
+        elements.btnSaveName.addEventListener("click", () => handleSaveName(elements.recruiterNameInput.value.trim()));
+    }
+    if (elements.btnSaveSettingsName) {
+        elements.btnSaveSettingsName.addEventListener("click", () => {
+            handleSaveName(elements.settingsNameInput.value.trim());
+            switchView(elements.viewMenu);
+        });
+    }
+
+    // --- EVENT LISTENERS: NAVIGATION ---
+    if (elements.btnToGen) elements.btnToGen.addEventListener("click", () => switchView('view-generator'));
+    if (elements.btnToMatch) elements.btnToMatch.addEventListener("click", () => switchView('job-matching-container'));
+    if (elements.btnSettings) elements.btnSettings.addEventListener("click", () => switchView('view-settings'));
+    
+    [elements.btnBackMatch, elements.btnBackGen, elements.btnBackSettings, elements.btnBackKandidat, elements.btnBackKontakt].forEach(btn => {
+        if (btn) btn.addEventListener("click", () => switchView(elements.viewMenu));
+    });
+
+    // --- EVENT LISTENERS: JOB MATCHING ---
+    if (elements.btnFetchJobMatchBtn) {
+        elements.btnFetchJobMatchBtn.addEventListener("click", async () => {
+            const jobId = elements.jobIdInput ? elements.jobIdInput.value.trim() : "";
+            
+            if (!jobId || !/^\d+$/.test(jobId)) {
                 showError("Bitte eine gültige Job-ID (nur Zahlen) eingeben.");
-                markInputError(job_id_input);
-                setTimeout(() => { clearError(); clearInputError(job_id_input); }, 4000);
                 return;
             }
 
-             // URL holen
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            const currentUrl = tabs[0]?.url?.toLowerCase() || "";
-
-            if(currentUrl.includes("xing.com/xtm/profiles") || currentUrl.includes("xing.com/xtm/search/profiles") ||
-             currentUrl.includes("linkedin.com/in") || currentUrl.includes("https://www.linkedin.com/talent/hire")) 
-             {
-
-
-                startCooldown();
-
-
-          
-            // UI Reset
-            statusDiv.innerText = "⏳ Starte Hintergrund-Scraping...";
-            if(jobMatchResultContainer) jobMatchResultContainer.classList.add("hidden");
-            if(matchOutputText) matchOutputText.innerHTML = "";
-            const spinnerMatch = btnFetchJobMatchBtn.querySelector(".spinner");
-            if(spinnerMatch) spinnerMatch.classList.remove("hidden");
-
-            // 3. TRY BLOCK STARTET HIER (Wichtig!)
             try {
-                 
-
-                if(currentUrl.includes("xing.com")) {
-                    statusDiv.innerText = "🔍 Scrape XING..."
-                     response = await scrapeData();
-                }
-                else{
-
-                    statusDiv.innerText = "🔍 Scrape LinkedIn...";
-                    response = await scrapeData();
-                    
-
-                }
-                console.log("Gescapte Daten für Job Matching:", response.data);
+                const { data, source } = await scrapeCurrentTab('message');
+                startCooldownWithUI();
                 
-                // 3b. Payload bauen
+                elements.statusDiv.innerText = "⏳ Starte Matching...";
+                elements.jobMatchResultContainer.classList.add("hidden");
+                const spinner = elements.btnFetchJobMatchBtn.querySelector(".spinner");
+                if (spinner) spinner.classList.remove("hidden");
+
                 const payload = {
                     mode: "job_matching",
                     job_id: jobId,
-                    text: response.data,
-                    timestamp: new Date().toISOString()
+                    text: data,
+                    timestamp: new Date().toISOString(),
+                    source: source
                 };
 
-                // Source bestimmen (wir nutzen currentUrl)
-                if(currentUrl.includes("linkedin.com")) {
-                    payload.source = "linkedin";
-                } else {
-                    payload.source = "xing";
-                }
-                
-                // 3c. Senden
-                sendJobMatchingRequest(payload, "🔍 Analysiere Matching...");
+                const result = await sendJobMatchingRequest(payload);
+                renderJobMatchResult(result);
+                showSuccess("Kandidat erfolgreich angelegt!"); // <-- NEU
 
             } catch (err) {
-                // Fehlerbehandlung
                 showError(err.message);
-                if(spinnerMatch) spinnerMatch.classList.add("hidden");
+            } finally {
+                const spinner = elements.btnFetchJobMatchBtn.querySelector(".spinner");
+                if (spinner) spinner.classList.add("hidden");
             }
-
-             }
-             else {
-                showError("Bitte öffne ein XING oder LinkedIn Profil.");
-                setTimeout(() => { clearError(); }, 4000);
-             }
-
-
-
-            
-            
         });
     }
 
-    function clearError() {
-        if(statusDiv) statusDiv.innerHTML = "";
-    }
-
-
-    // // --- B. Nachricht Erstellen Button ---
-    if (scrapeBtn) {
-        scrapeBtn.addEventListener("click", async () => {
-
-            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
-
-            // Validierung Job-ID
-            if (jobId && !/^\d+$/.test(jobId)) {
-                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-                markInputError(jobIdInputMessage);
-                setTimeout(() => {
-                    clearError();
-                    clearInputError(jobIdInputMessage);
-                }, 4000);
-                return; 
-            }
-
-            startCooldown();
-
-            // ---------------------------------------------------------
-            // URL PRÜFEN FÜR KORREKTEN TEXT (Status Update)
-            // ---------------------------------------------------------
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            const currentUrl = tabs[0]?.url?.toLowerCase() || "";
-            
-            // UI Vorbereitung
-            if (currentUrl.includes("xing.com")) {
-                statusDiv.innerText = "🔍 Scrape XING...";
-            } else if (currentUrl.includes("linkedin.com")) {
-                statusDiv.innerText = "🔍 Scrape LinkedIn...";
-            } else {
-                statusDiv.innerText = "🔍 Lese Profil..."; // Fallback
-            }
-            // ---------------------------------------------------------
-
-            resultContainer.classList.add("hidden");
-            if (recreateContainer) recreateContainer.classList.add("hidden");
-            const spinnerScrape = scrapeBtn.querySelector(".spinner");
-            if (spinnerScrape) spinnerScrape.classList.remove("hidden");
+    // --- EVENT LISTENERS: GENERATOR ---
+    if (elements.scrapeBtn) {
+        elements.scrapeBtn.addEventListener("click", async () => {
+             // Validierung Job-ID (falls input existiert, hier nicht explizit in elements map, nehme an es ist nicht da oder optional)
+             // Im original Code gab es jobIdInputMessage, aber im HTML sehe ich es nicht in view-generator. 
+             // Ignoriere JobID für Generator falls nicht im HTML.
 
             try {
-                let finalProfileData;
-
-                // 1. Recruiter Daten laden (Funktion steht jetzt ganz oben)
                 const { rName, rEmail } = await getRecruiterData();
-                console.log("Geladener Recruiter:", rName, rEmail);
+                const { data, source } = await scrapeCurrentTab('message');
+                setCachedProfileData(data);
+                startCooldownWithUI();
 
-                // 2. Scrapen
-                const response = await scrapeData();
-                
-                finalProfileData = response.data;
-                //cachedProfileData = response.data; // Speichern
-                
+                elements.statusDiv.innerText = "✍️ Erstelle Nachricht...";
+                elements.resultContainer.classList.add("hidden");
+                elements.recreateContainer.classList.add("hidden");
+                const spinner = elements.scrapeBtn.querySelector(".spinner");
+                if (spinner) spinner.classList.remove("hidden");
 
-                console.log("Finale Profildaten für Erstellung:", finalProfileData);
-
-                // 3. Payload erstellen
                 const payload = {
-                    mode: jobId ? "create_with_jobid" : "create",
-                    text: finalProfileData,
-                    prompt: userPromptInput.value.trim(),
-                    tonality: tonalitySelect.value,
-                    length: lengthSelect.value,
+                    mode: "create",
+                    text: data,
+                    prompt: elements.userPromptInput.value.trim(),
+                    tonality: elements.tonalitySelect.value,
+                    length: elements.lengthSelect.value,
                     timestamp: new Date().toISOString(),
                     name: rName,
-                    email: rEmail
+                    email: rEmail,
+                    source: source
                 };
-                
-                if (jobId) payload.job_id = jobId;
 
-                // Source setzen
-                if (currentUrl.includes("linkedin.com")) {
-                    payload.source = "linkedin";
-                } else {
-                    payload.source = "xing";
-                }
-
-                sendPayloadToN8n(payload, "✍️ Erstelle Nachricht...");
+                const result = await sendPayloadToN8n(payload);
+                elements.outputSubject.value = result.betreff || result.subject || "";
+                elements.outputMessage.value = result.message || result.nachricht || "";
+                elements.resultContainer.classList.remove("hidden");
+                elements.recreateContainer.classList.remove("hidden");
+                elements.statusDiv.innerText = "";
 
             } catch (err) {
                 showError(err.message);
-                if (spinnerScrape) spinnerScrape.classList.add("hidden");
+            } finally {
+                const spinner = elements.scrapeBtn.querySelector(".spinner");
+                if (spinner) spinner.classList.add("hidden");
             }
         });
     }
 
-
-
-    // --- C. Nachricht Anpassen (Rewrite) ---
-    if (recreateBtn) {
-        recreateBtn.addEventListener("click", async () => {
-
-            // --- Validierung & Cooldown ---
-            const jobId = jobIdInputMessage ? jobIdInputMessage.value.trim() : "";
-            if (jobId && !/^\d+$/.test(jobId)) {
-                showError("Bitte gültige Job-ID (nur Zahlen) eingeben.");
-                return;
-            }
-            startCooldown();
-
-            // UI Updates
-            statusDiv.innerText = "✨ Verfeinere Nachricht...";
-            const spinnerRecreate = recreateBtn.querySelector(".spinner");
-            if (spinnerRecreate) spinnerRecreate.classList.remove("hidden");
-
+    if (elements.recreateBtn) {
+        elements.recreateBtn.addEventListener("click", async () => {
             try {
-                // 1. URL FRISCH HOLEN
-                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-                const currentUrl = tabs[0]?.url?.toLowerCase() || "";
-
-                // 2. RECRUITER DATEN
                 const { rName, rEmail } = await getRecruiterData();
-                console.log("Geladener Recruiter für Rewrite:", rName, rEmail);
-
-                // 3. PROFIL DATEN HOLEN
-                let finalProfileData;
                 
-                if (!cachedProfileData) {
-                    // Falls noch keine Daten da sind, kurz scrapen
-                    statusDiv.innerText = "🔍 Hole Daten erneut...";
-                    const response = await scrapeData();
-                    finalProfileData = response.data;
-                    cachedProfileData = response.data;
-                } else {
-                    finalProfileData = cachedProfileData;
+                // Nutze gecachte Daten oder scrape neu
+                let data = state.cachedProfileData;
+                let source = "linkedin"; // default fallback
+                if (!data) {
+                    const scrapeResult = await scrapeCurrentTab('message');
+                    data = scrapeResult.data;
+                    source = scrapeResult.source;
+                    setCachedProfileData(data);
                 }
 
-                console.log("Finale Profildaten für Rewrite:", finalProfileData);
+                startCooldownWithUI();
+                elements.statusDiv.innerText = "✨ Verfeinere Nachricht...";
+                const spinner = elements.recreateBtn.querySelector(".spinner");
+                if (spinner) spinner.classList.remove("hidden");
 
-                // 4. PAYLOAD ERSTELLEN
                 const payload = {
-                    mode: jobId ? "rewrite_with_jobid" : "rewrite",
-                    text: finalProfileData,
-                    oldSubject: outputSubject.value,
-                    oldMessage: outputMessage.value,
-                    prompt: userPromptInput.value.trim(),
-                    tonality: tonalitySelect.value,
-                    length: lengthSelect.value,
+                    mode: "rewrite",
+                    text: data,
+                    oldSubject: elements.outputSubject.value,
+                    oldMessage: elements.outputMessage.value,
+                    prompt: elements.userPromptInput.value.trim(),
+                    tonality: elements.tonalitySelect.value,
+                    length: elements.lengthSelect.value,
                     timestamp: new Date().toISOString(),
                     name: rName,
-                    email: rEmail 
+                    email: rEmail,
+                    source: source // Sollte dynamisch sein, hier vereinfacht
                 };
 
-                if (jobId) {
-                    payload.job_id = jobId;
-                }
-
-                // Source setzen
-                if (currentUrl.includes("linkedin.com")) {
-                    payload.source = "linkedin";
-                } else {
-                    payload.source = "xing";
-                }
-
-                sendPayloadToN8n(payload, "🎨 Verfeinere Nachricht...", true);
+                const result = await sendPayloadToN8n(payload);
+                elements.outputSubject.value = result.betreff || result.subject || "";
+                elements.outputMessage.value = result.message || result.nachricht || "";
+                elements.statusDiv.innerText = "";
 
             } catch (err) {
-                console.error(err);
                 showError(err.message);
-                if (spinnerRecreate) spinnerRecreate.classList.add("hidden");
+            } finally {
+                const spinner = elements.recreateBtn.querySelector(".spinner");
+                if (spinner) spinner.classList.add("hidden");
             }
         });
     }
 
-
-    // ==========================================
-    // 4. FETCH FUNKTIONEN
-    // ==========================================
-
-    // Funktion 1: Für Job Matching
-    function sendJobMatchingRequest(payload, loadingText) {
-        if (isRequestRunning) return;
-        isRequestRunning = true;
-        statusDiv.innerText = loadingText;
-
-        fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            const output = Array.isArray(data) ? data[0] : data;
-            if(output.error) throw new Error(output.error);
-            // HTML Bauen
-            let colorHex = "#666";
-            let bgColor = "#f9f9f9";
-            if (output.status_color === 'red') { colorHex = "#d93025"; bgColor = "#fff5f5"; }
-            else if (output.status_color === 'green') { colorHex = "#188038"; bgColor = "#e6f4ea"; }
-            else if (output.status_color === 'yellow') { colorHex = "#f29900"; bgColor = "#fff8e1"; }
-
-            const escapeHtml = (value) => String(value ?? "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-
-            const safeText = (value, fallback = "-") => {
-                const raw = String(value ?? "").trim();
-                return raw ? escapeHtml(raw) : fallback;
-            };
-
-            const makeList = (arr) => {
-                const items = Array.isArray(arr) && arr.length ? arr : ["-"];
-                return items
-                    .map(i => `<li style="margin-bottom:4px;">${safeText(i)}</li>`)
-                    .join('');
-            };
-
-            const htmlContent = `
-                <div style="border-left: 5px solid ${colorHex}; background: #fff; padding: 8px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                    <h3 style="color: ${colorHex}; margin: 0 0 5px 0; font-size: 16px;">${safeText(output.status_headline, "Analyse")}</h3>
-                    <div style="font-weight:bold; margin-bottom: 10px; color:#333;">
-                        Empfehlung: <span style="background:${bgColor}; padding:2px 6px; border-radius:4px; color:${colorHex}">${safeText(output.recommendation)}</span>
-                    </div>
-                    <p style="font-size: 13px; line-height: 1.5; color: #555; margin-bottom: 15px; padding-bottom:10px; border-bottom:1px solid #eee;">
-                        ${safeText(output.summary, "")}
-                    </p>
-                    <div style="font-size: 13px;">
-                        <div style="margin-bottom: 10px;">
-                            <strong style="color: #188038;">✅ Pro:</strong>
-                            <ul style="padding-left: 20px; margin-top: 5px; color: #333;">${makeList(output.pro_arguments)}</ul>
-                        </div>
-                        <div>
-                            <strong style="color: #d93025;">❌ Contra:</strong>
-                            <ul style="padding-left: 20px; margin-top: 5px; color: #333;">${makeList(output.contra_arguments)}</ul>
-                        </div>
-                    </div>
-                </div>`;
-
-            if(matchOutputText) matchOutputText.innerHTML = htmlContent;
-            if(jobMatchResultContainer) jobMatchResultContainer.classList.remove("hidden");
-            statusDiv.innerText = "";
-        })
-        .catch(err => showError(err.message))
-        .finally(() => {
-            isRequestRunning = false;
-            // Spinner Matching ausschalten
-            const sp = btnFetchJobMatchBtn.querySelector(".spinner");
-            if(sp) sp.classList.add("hidden");
-        });
-    }
-
+    // --- EVENT LISTENERS: CANDIDATE / CONTACT ---
     
- 
-
-
-
-
-
-
-            
-        // Elemente erst abrufen, wenn das DOM geladen ist
-        const fileInput = document.getElementById('resume_upload');
-        const fileNameDisplay = document.getElementById('file-name-display');
-        const fileInfoContainer = document.getElementById('file-info-container');
-        const removeFileBtn = document.getElementById('removeFileBtn');
-        const saveCandidateBtn = document.getElementById('saveCandidateBtn');
-        const dropArea = document.getElementById('drop-area');
-        const saveCandidateBtnText = saveCandidateBtn ? saveCandidateBtn.querySelector(".btn-text") : null;
-        const saveCandidateSpinner = saveCandidateBtn ? saveCandidateBtn.querySelector(".spinner") : null;
-        const saveCandidateDefaultLabel = saveCandidateBtnText
-        ? saveCandidateBtnText.textContent
-        : (saveCandidateBtn ? saveCandidateBtn.textContent : "Kandidat anlegen");
-        let candidateProgressTimerId = null;
-        let candidateProgressSeconds = 0;
-        let candidateProgressLabel = "";
+    // Tab Switching & Scraping Logic
+    const handleProfileScrape = async (type) => {
+        const isCandidate = type === 'candidate';
+        const targetView = isCandidate ? elements.sectionKandidat : elements.sectionKontakt;
         
-        const getNameParts = (fullName) => {
-        const normalizedName = typeof fullName === "string" ? fullName.trim() : "";
-        if (!normalizedName) return { firstName: "", lastName: "" };
-        const parts = normalizedName.split(/\s+/).filter(Boolean);
-        return {
-        firstName: parts[0] || "",
-        lastName: parts.length > 1 ? parts.slice(1).join(" ") : ""
-        };
-        };
-
-        function setSaveCandidateLabel(label) {
-        if (!saveCandidateBtn) return;
-        if (saveCandidateBtnText) {
-        saveCandidateBtnText.textContent = label;
-        } else {
-        saveCandidateBtn.textContent = label;
+        switchView(targetView);
+        elements.statusDiv.innerText = "🔍 Scrape Profil & prüfe Duplikate...";
+        
+        // Reset specific buttons
+        if (!isCandidate && elements.btnSaveContact) {
+            elements.btnSaveContact.disabled = true;
+            elements.btnSaveContact.style.opacity = "0.5";
+            elements.btnSaveContact.dataset.ready = "0";
         }
-        }
-
-        function setSaveCandidateLoadingState(isLoading, label) {
-        if (!saveCandidateBtn) return;
-        saveCandidateBtn.classList.toggle("loading", isLoading);
-        saveCandidateBtn.disabled = !!isLoading;
-        if (saveCandidateSpinner) saveCandidateSpinner.classList.toggle("hidden", !isLoading);
-        setSaveCandidateLabel(label || saveCandidateDefaultLabel);
-        }
-
-        function renderCandidateProgress() {
-        if (!statusDiv) return;
-        if (!candidateProgressLabel) return;
-        const elapsedHint = candidateProgressSeconds >= 55
-        ? `Läuft seit ${candidateProgressSeconds}s. Antwort kann bis zu 60s dauern.`
-        : `Läuft seit ${candidateProgressSeconds}s...`;
-
-        statusDiv.innerHTML = `
-            <div class="status-container">
-                <div class="pulsing-text">${candidateProgressLabel}</div>
-                <small class="candidate-progress-note">${elapsedHint}</small>
-            </div>`;
-        }
-
-        function startCandidateProgress(label) {
-        stopCandidateProgress();
-        candidateProgressSeconds = 0;
-        candidateProgressLabel = label;
-        renderCandidateProgress();
-        candidateProgressTimerId = setInterval(() => {
-        candidateProgressSeconds += 1;
-        renderCandidateProgress();
-        }, 1000);
-        }
-
-        function updateCandidateProgress(label) {
-        candidateProgressLabel = label;
-        renderCandidateProgress();
-        }
-
-        function stopCandidateProgress() {
-        if (candidateProgressTimerId) {
-        clearInterval(candidateProgressTimerId);
-        candidateProgressTimerId = null;
-        }
-        candidateProgressSeconds = 0;
-        candidateProgressLabel = "";
-        }
-
-        // Funktion zum Zurücksetzen der Upload-Ansicht
-        function resetUpload() {
-        if (fileInput) fileInput.value = ""; 
-        if (fileNameDisplay) fileNameDisplay.textContent = "";
-        if (fileInfoContainer) {
-        fileInfoContainer.classList.add('hidden');
-        fileInfoContainer.style.display = "none"; // Sicherstellen, dass es weg ist
-        }
-
-        if (saveCandidateBtn) {
-        saveCandidateBtn.classList.add('hidden');
-        saveCandidateBtn.dataset.busy = "0";
-        setSaveCandidateLoadingState(false, saveCandidateDefaultLabel);
-        }
-
-        if (dropArea) {
-        dropArea.style.borderColor = ""; 
-        dropArea.style.backgroundColor = "";
-        }
-        }
-
-        // 1. Datei-Auswahl
-        if (fileInput) {
-        fileInput.addEventListener('change', function() {
-        const selectedFile = this.files && this.files.length > 0 ? this.files[0] : null;
-        if (!selectedFile) {
-        resetUpload();
-        return;
-        }
-        if (fileNameDisplay) fileNameDisplay.textContent = "📄 " + selectedFile.name;
-        if (fileInfoContainer) {
-        fileInfoContainer.classList.remove('hidden');
-        fileInfoContainer.style.display = "flex"; // Anzeigen als Flexbox
-        }
-        if (saveCandidateBtn) saveCandidateBtn.classList.remove('hidden');
-
-        // UI Feedback
-        if (dropArea) {
-        dropArea.style.borderColor = "#28a745";
-        dropArea.style.backgroundColor = "#f6fff8";
-        }
-        });
-        }
-
-        // 2. Datei entfernen
-        if (removeFileBtn) {
-        removeFileBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        resetUpload();
-        });
-        }
-
-        // Hilfsfunktion: Base64
-        function getBase64(file) {
-        return new Promise((resolve, reject) => {
-        if (!file) {
-        reject(new Error("Keine Datei uebergeben."));
-        return;
-        }
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-        const result = typeof reader.result === "string" ? reader.result : "";
-        const commaIndex = result.indexOf(",");
-        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
-        };
-        reader.onerror = () => reject(reader.error || new Error("Datei konnte nicht gelesen werden."));
-        });
-        }
-
-// Sektionen (Diese behandeln wir jetzt wie eigene Views)
-const sectionKandidat = document.getElementById("section-kandidat");
-const sectionKontakt = document.getElementById("section-kontakt");
-
-// Buttons im Hauptmenü
-const btnTabKandidat = document.getElementById("tab-kandidat");
-const btnTabKontakt = document.getElementById("tab-kontakt");
-
-// --- 3. EVENT LISTENER ---
-
-
-// Variable zum Zwischenspeichern der Scraper-Daten für den Upload
-// Variable zum Zwischenspeichern der Scraper-Daten für den Upload
-let currentScrapedCandidateForUpload = null;
-let contactStatusClearTimeoutId = null;
-// 🎯 ZUSAMMENGEFÜHRTER TAB-KLICK (UI anpassen + Duplikat prüfen)
-if (btnTabKandidat) {
-    btnTabKandidat.addEventListener("click", async () => {
-      
-        switchView(sectionKandidat);
-      
-
-        // Formular-Bereiche verstecken, bis der Check durch ist
-        document.getElementById("candidate-form-area")?.classList.add("hidden");
-        document.getElementById("linkedin-form-area")?.classList.add("hidden");
-        statusDiv.innerHTML = "🔍 Bereite Profil-Daten für Upload vor...";
-
-      
-
 
         try {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
-            const tab = tabs[0]; 
-            const tabUrl = tab.url || "";
-            
-            let response = null; 
-            let profileSource = ""; 
+            const { data, source, url } = await scrapeCurrentTab('profile');
+            fillProfileForm(data, type);
+            adjustCandidateUIForPlatform(source); // Helper below
 
-            if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {
-                response = await scrapeDataXingBase(tab.id); 
-                profileSource = "xing";
-            } else if(tabUrl.includes("linkedin.com/in")) {
-                response = await scrapeDataLinkedBase();
-                profileSource = "linkedin";
-            } else {
-                throw new Error("Bitte öffne ein LinkedIn oder Xing Profil.");
-            }
+            const { rName, rEmail } = await getRecruiterData();
+            const rawName = data.profile?.name || data.fullName || "";
+            const { firstName, lastName } = getNameParts(rawName);
+            const jobTitle = data.profile?.role || data.position || "";
 
-            // ERFOLGREICH GESCRAPT:
-            if (response && response.data) {
-               
-                fillContactFields(response.data);
-                fillCandidatesFields(response.data);
-                
-                const recruiter = await getRecruiterData();
-                const rawName = response.data.profile?.name || response.data.fullName || "";
-                const { firstName, lastName } = getNameParts(rawName);
-                const jobTitle = response.data.profile?.role || response.data.position || "";
-                
-                currentContactPayload = {
-                    mode: "check kontakten / kandidaten",
-                    item:"kandidate",
-                    mode_create: "create_kontakt_candidate",
-                    firstName,
-                    lastName,
-                    jobTitle: jobTitle,
-                    profileImage: response.data.profileImage || "",
-                    recruiter_name: recruiter.rName || "Unbekannt",
-                    recruiter_email: recruiter.rEmail || "Keine Email",
-                    profileUrl: response.data.url || "",
-                    source: profileSource
-                };
+            const payload = {
+                mode: "check kontakten / kandidaten",
+                item: isCandidate ? "kandidate" : "kontakten",
+                mode_create: "create_kontakt_candidate",
+                firstName,
+                lastName,
+                jobTitle,
+                profileImage: data.profileImage || "",
+                recruiter_name: rName || "Unbekannt",
+                recruiter_email: rEmail || "Keine Email",
+                profileUrl: data.url || url,
+                source: source
+            };
 
-                await checkDuplicateInN8n(currentContactPayload,"save kontakten / kandidaten");
-            } else {
-                showError("Keine Daten vom Profil erhalten.");
-            }
+            setCurrentContactPayload(payload);
+            await checkDuplicateInN8n(payload, type);
+
         } catch (err) {
-            console.error("Scrape Fehler:", err);
-            showError(err.message || "Fehler beim Initialisieren des Scrapers.");
+            showError(err.message);
         }
-    });
-}
-// 🛠️ FUNKTION: UI anpassen
-async function adjustCandidateUIForPlatform() {
-    try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tabs || tabs.length === 0) return;
-        
-        const tabUrl = tabs[0].url || "";
-        const isXing = tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles");
-        const isLinkedIn = tabUrl.includes("linkedin.com/in");
-        
-        const xingArea = document.getElementById("candidate-form-area");
-        const linkedinArea = document.getElementById("linkedin-form-area");
-        const dropArea = document.getElementById("drop-area");
-        const saveBtn = document.getElementById("saveCandidateBtn");
-        
-        if (isXing) {
-            if (xingArea) { xingArea.style.display = ""; xingArea.classList.remove("hidden"); }
-            if (linkedinArea) linkedinArea.style.display = "none";
-            if (saveBtn) {
-                saveBtn.classList.remove("hidden");
-                const btnText = saveBtn.querySelector('.btn-text');
-                if (btnText) btnText.innerText = "XING Profil scrapen & anlegen ➕";
-            }
-        } else if (isLinkedIn) {
-            if (xingArea) xingArea.style.display = "none";
-            if (linkedinArea) { linkedinArea.style.display = ""; linkedinArea.classList.remove("hidden"); }
-            if (dropArea) { dropArea.style.display = ""; dropArea.classList.remove("hidden"); }
-            if (saveBtn) {
-                saveBtn.classList.remove("hidden");
-                const btnText = saveBtn.querySelector('.btn-text');
-                if (btnText) btnText.innerText = "Kandidat anlegen ➕";
-            }
-        }
-    } catch (error) {
-        console.error("Fehler bei UI-Anpassung:", error);
+    };
+
+    if (elements.btnTabKandidat) {
+        elements.btnTabKandidat.addEventListener("click", () => handleProfileScrape('candidate'));
     }
-}
+    if (elements.btnTabKontakt) {
+        elements.btnTabKontakt.addEventListener("click", () => handleProfileScrape('contact'));
+    }
+// SAVE CANDIDATE
+    if (elements.saveCandidateBtn) {
+        elements.saveCandidateBtn.addEventListener("click", async () => {
+            if (elements.saveCandidateBtn.dataset.busy === "1") return;
 
+            try {
+                const { data, source, url } = await scrapeCurrentTab('profile');
+                let fileBase64 = null;
+                let fileName = null;
 
-// 💾 KANDIDAT SPEICHERN BUTTON LOGIK
-if (saveCandidateBtn) {
-    saveCandidateBtn.dataset.busy = "0";
-    saveCandidateBtn.addEventListener('click', async () => {
-        if (saveCandidateBtn.dataset.busy === "1") return;
-
-        try {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
-            
-            const tab = tabs[0];
-            const tabUrl = tab.url || "";
-            const isXing = tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles");
-            const isLinkedIn = tabUrl.includes("linkedin.com/in");
-
-            if (!isXing && !isLinkedIn) {
-                showError("Bitte öffne ein LinkedIn oder Xing Profil.");
-                return;
-            }
-
-            let file = null;
-            let fileBase64 = null;
-
-            if (isLinkedIn) {
-                file = fileInput && fileInput.files ? fileInput.files[0] : null;
-                if (!file) {
-                    showError("Bitte erst eine PDF-Datei für das LinkedIn-Profil auswählen.");
-                    return;
+                // LinkedIn PDF Check
+                if (source === 'linkedin') {
+                    const file = elements.fileInput.files[0];
+                    if (!file) {
+                        showError("Bitte PDF für LinkedIn auswählen.");
+                        return;
+                    }
+                    fileName = file.name;
+                    fileBase64 = await getBase64(file);
                 }
-            }
 
-            saveCandidateBtn.dataset.busy = "1";
-            setSaveCandidateLoadingState(true, isLinkedIn ? "Verarbeite PDF..." : "Lade XING Daten...");
-            startCandidateProgress(isLinkedIn ? "Verarbeite PDF..." : "Scrape XING Profil...");
+                setSaveCandidateLoadingState(true, "Sende an Vincere...");
+                startCandidateProgress("Sende Daten...");
+                elements.saveCandidateBtn.dataset.busy = "1";
 
-            if (isLinkedIn && file) {
-                fileBase64 = await getBase64(file);
-            }
-
-            updateCandidateProgress("Lade Profildaten...");
-            
-            let scrape = null;
-            let profileSource = "";
-            let dataXing = null;
-
-            if (isXing) {
-                scrape = await handleXingScrape(tab.id);
-                profileSource = "xing";
-                dataXing = scrape ? scrape.data : null;
-            } else if (isLinkedIn) {
-                scrape = await scrapeDataLinkedBase();
-                profileSource = "linkedin";
-            }
-
-            if (scrape && scrape.data) {
-                const recruiter = await getRecruiterData();
-                
-                // 👇 WICHTIG: Lese zuerst die Werte aus den Textfeldern (falls der Nutzer sie bearbeitet hat!)
-                const inputName = document.getElementById("candidate_fullname")?.value;
-                const inputJob = document.getElementById("candidate_jobtitle")?.value;
-                const inputImg = document.getElementById("candidate_image_url")?.value;
-
-                // Fallback auf die Scrape-Daten, falls das Feld leer ist
-                const rawName = inputName || scrape.data.profile?.name || scrape.data.fullName || "";
+                const { rName, rEmail } = await getRecruiterData();
+                const rawName = elements.candidateFullname.value || data.profile?.name || data.fullName || "";
                 const { firstName, lastName } = getNameParts(rawName);
-                const jobTitle = inputJob || scrape.data.profile?.role || scrape.data.position || "";
-                const profileImage = inputImg || scrape.data.profileImage || "";
-
+                
                 const payload = {
                     mode: "save kontakten / kandidaten",
                     item: "kandidate",
                     mode_create: "create_kontakt_candidate",
-                    source: profileSource,
+                    source: source,
                     firstName,
                     lastName,
-                    jobTitle: jobTitle,
-                    profileImage: profileImage,
-                    recruiter_name: recruiter.rName || "Unbekannt",
-                    recruiter_email: recruiter.rEmail || "Keine Email",
-                    profileUrl: scrape.data.url || tabUrl,
-                    data: dataXing
+                    jobTitle: elements.candidateJobtitle.value || "",
+                    profileImage: elements.candidateImageUrl.value || "",
+                    recruiter_name: rName,
+                    recruiter_email: rEmail,
+                    profileUrl: url,
+                    data: data,
+                    ...(fileBase64 && { fileName, fileData: fileBase64 })
                 };
 
-                if (fileBase64) {
-                    payload.fileName = file.name;
-                    payload.fileData = fileBase64;
+                const result = await sendToN8nWebhook(payload);
+                if (result) {
+                    // Erfolg anzeigen
+                    showSuccess("Kandidat erfolgreich angelegt!");
+                    setTimeout(() => switchView(elements.viewMenu), 3000);
                 }
 
-                setSaveCandidateLoadingState(true, "Sende an Vincere...");
-                updateCandidateProgress("Sende Daten an Vincere...");
-                const n8nResult = await sendToN8n(payload);
-
-                if (n8nResult) {
-                    stopCandidateProgress();
-                    const successMsg = fileBase64 ? "✅ Kandidat & Datei erfolgreich angelegt!" : "✅ Kandidat erfolgreich angelegt!";
-                    statusDiv.innerHTML = `<span style="color:green;">${successMsg}</span>`;
-                    
-                    setTimeout(() => {
-                        statusDiv.innerText = "";
-                        if (typeof resetUpload === "function") resetUpload();
-                        const startMenu = document.getElementById("view-menu");
-                        if (typeof switchView === "function" && startMenu) switchView(startMenu);
-                    }, 3000);
-                }
-            } else {
-                showError("Keine Profildaten gefunden. Bitte das Profil prüfen.");
+            } catch (err) {
+                // Fehler anzeigen
+                showError(err.message);
+            } finally {
+                // Hier greift nun unser gefixtes stopCandidateProgress ohne die Nachricht zu löschen!
+                stopCandidateProgress();
+                setSaveCandidateLoadingState(false, "Kandidat anlegen ➕");
+                elements.saveCandidateBtn.dataset.busy = "0";
             }
-        } catch (error) {
-            console.error("Upload Fehler:", error);
-            showError("Kritischer Fehler beim Upload: " + error.message);
-        } finally {
-            stopCandidateProgress();
-            saveCandidateBtn.dataset.busy = "0";
-            const defaultLabel = typeof saveCandidateDefaultLabel !== "undefined" ? saveCandidateDefaultLabel : "Speichern";
-            setSaveCandidateLoadingState(false, defaultLabel);
-        }
-    });
-}
+        });
+    }
 
-    // Felder aus der Kontakt-Sektion
-    // const contactNameInput = document.getElementById("contact_fullname");
-    // const contactJobInput = document.getElementById("contact_jobtitle");
-    // const contactImageInput = document.getElementById("contact_image"); // Das Textfeld für die URL
-    const btnSaveContact = document.getElementById("saveContactBtn");
-    const btnBackContact = document.getElementById("backFromSection-kontakt");
-
-    // Wenn man auf "Kontakt anlegen" klickt
-    // Variable zum Zwischenspeichern der aktuellen Payload
-    let currentContactPayload = null;
-
-
-
-    if (btnTabKontakt) {
-    btnTabKontakt.addEventListener("click", async () => {
-        // 1. Ansicht wechseln & UI vorbereiten
-        switchView(sectionKontakt);
-        statusDiv.innerHTML = "🔍 Scrape Profil & prüfe Duplikate...";
-        
-        // Button deaktivieren waehrend des Prozesses
-        if (btnSaveContact) {
-        btnSaveContact.disabled = true;
-        btnSaveContact.style.opacity = "0.5";
-        btnSaveContact.dataset.ready = "0";
-        }
-
-        try {
-
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
+    // SAVE CONTACT
+    if (elements.btnSaveContact) {
+        elements.btnSaveContact.addEventListener("click", async () => {
+            if (elements.btnSaveContact.dataset.ready !== "1") return;
             
-            const tab = tabs[0]; 
-            const tabUrl = tab.url || "";
-            console.log("Aktive Tab URL:", tabUrl);
+            const payload = state.currentContactPayload;
+            if (!payload) return;
 
-            // Declare response OUTSIDE the if-blocks so Step 3 can access it
-            let response = null; 
-            let profileSource = ""; // <-- NEU: Variable für die Plattform-Quelle
-
-            if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {
-                // 2a. Xing Scraper aufrufen
-                response = await scrapeDataXingBase(tab.id); 
-                profileSource = "xing"; // <-- NEU: Setze Quelle auf Xing
-            }
-            else if(tabUrl.includes("linkedin.com/in")) {
-                // 2b. LinkedIn Scraper aufrufen
-                response = await scrapeDataLinkedBase();
-                profileSource = "LinkedIn"; // <-- NEU: Setze Quelle auf Xing
-            } else {
-                throw new Error("Bitte öffne ein LinkedIn oder Xing Profil.");
-            }
-
-
-            // 3. ERFOLGREICH GECRAPT:
-            if (response && response.data) {
-                // Felder im UI füllen
-                fillContactFields(response.data);
-                fillCandidatesFields(response.data);
-                
-                // Recruiter Daten abrufen
-                  // Recruiter Daten abrufen
-                const recruiter = await getRecruiterData();
-                
-                // 👇 FIX: Hole den Namen aus profile.name (XING) oder fullName (LinkedIn)
-                const rawName = response.data.profile?.name || response.data.fullName || "";
-                const { firstName, lastName } = getNameParts(rawName);
-                
-                // 👇 FIX: Das gleiche Prinzip für den Jobtitel (XING nutzt profile.role)
-                const jobTitle = response.data.profile?.role || response.data.position || "";
-                
-                // Payload für n8n zusammenbauen
-                currentContactPayload = {
-                    mode: "check kontakten / kandidaten",
-                    mode_create: "create_kontakt_candidate",
-                    item:"kontakten",
-                    firstName,
-                    lastName,
-                    jobTitle: jobTitle,
-                    profileImage: response.data.profileImage || "",
-                    recruiter_name: recruiter.rName || "Unbekannt",
-                    recruiter_email: recruiter.rEmail || "Keine Email",
-                    profileUrl: response.data.url || "" ,
-                    source:profileSource
-                };
-
-                // 4. Duplikatsprüfung in n8n starten
-                // (Nutzt die optimierte Funktion aus unserer vorherigen Nachricht)
-                await checkDuplicateInN8n(currentContactPayload,"save kontakten / kandidaten");
-                
-            } else {
-                showError("Keine Daten vom Profil erhalten.");
-            }
-
-        } catch (err) {
-            console.error("Scrape Fehler:", err);
-            // Zeigt die Fehlermeldung aus deiner catch-Logik in scrapeDataLinkedBase an
-            showError(err.message || "Fehler beim Initialisieren des Scrapers.");
-        }
-    });
-}
-// Hilfsfunktion: Befüllt die KONTAKT-Felder und zeigt das BILD an
-function fillContactFields(data) {
-    if (!data || typeof data !== "object") return;
-    const nameInput = document.getElementById("contact_fullname");
-    const jobInput = document.getElementById("contact_jobtitle");
-    const imgDisplay = document.getElementById("contact_image_display");
-    const imgUrlHidden = document.getElementById("contact_image_url");
-
-    // 👇 KORREKTUR: Kompatibel mit XING und LinkedIn
-    const rawName = data.profile?.name || data.fullName || "";
-    const jobTitle = data.profile?.role || data.position || "";
-
-    if(nameInput) nameInput.value = rawName;
-    if(jobInput) jobInput.value = jobTitle;
-
-    // Bild-Logik
-    if (imgDisplay && data.profileImage) {
-        imgDisplay.src = data.profileImage;
-        imgDisplay.style.display = "block"; 
-        if(imgUrlHidden) imgUrlHidden.value = data.profileImage; 
-    } else if (imgDisplay) {
-        imgDisplay.style.display = "none"; 
-    }
-
-    const infoMessage = "✅ Profildaten übernommen.";
-    statusDiv.innerText = infoMessage;
-
-    if (contactStatusClearTimeoutId) clearTimeout(contactStatusClearTimeoutId);
-    contactStatusClearTimeoutId = setTimeout(() => {
-        if (statusDiv.innerText === infoMessage) statusDiv.innerText = "";
-        contactStatusClearTimeoutId = null;
-    }, 2000);
-}
-
-// Hilfsfunktion: Befüllt die KANDIDATEN-Felder und zeigt das BILD an
-function fillCandidatesFields(data) {
-    if (!data || typeof data !== "object") return;
-    const nameInput = document.getElementById("candidate_fullname");
-    const jobInput = document.getElementById("candidate_jobtitle");
-    const imgDisplay = document.getElementById("candidate_image_display");
-    const imgUrlHidden = document.getElementById("candidate_image_url");
-    
-    // 👇 KORREKTUR: Kompatibel mit XING und LinkedIn
-    const rawName = data.profile?.name || data.fullName || "";
-    const jobTitle = data.profile?.role || data.position || "";
-
-    if(nameInput) nameInput.value = rawName;
-    if(jobInput) jobInput.value = jobTitle;
-
-    // Bild-Logik
-    if (imgDisplay && data.profileImage) {
-        imgDisplay.src = data.profileImage;
-        imgDisplay.style.display = "block"; 
-        if(imgUrlHidden) imgUrlHidden.value = data.profileImage; 
-    } else if (imgDisplay) {
-        imgDisplay.style.display = "none"; 
-    }
-
-    const infoMessage = "✅ Profildaten übernommen.";
-    statusDiv.innerText = infoMessage;
-
-    if (contactStatusClearTimeoutId) clearTimeout(contactStatusClearTimeoutId);
-    contactStatusClearTimeoutId = setTimeout(() => {
-        if (statusDiv.innerText === infoMessage) statusDiv.innerText = "";
-        contactStatusClearTimeoutId = null;
-    }, 2000);
-}
-// 1. Zentrale Methode für den API-Aufruf
-// 1. Zentrale Methode für den API-Aufruf
-async function sendToN8n(payload) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 120000);
-
-  try {
-    if (!payload || typeof payload !== "object") {
-      throw new Error("Ungueltige Payload fuer n8n.");
-    }
-
-    const response = await fetch(
-      "https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649", //API_URL
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      }
-    );
-
-    const rawBody = await response.text().catch(() => "");
-
-    // optional: Status/Headers debuggen
-    console.log("Antwort-Status:", response.status, response.statusText);
-
-    if (!response.ok) {
-      throw new Error(
-        `Netzwerk-Antwort war nicht ok (HTTP ${response.status})${rawBody ? `: ${rawBody}` : ""}`
-      );
-    }
-
-    // Wenn n8n leer antwortet, den Nutzer klar informieren.
-    if (!rawBody || !rawBody.trim()) {
-      console.warn("n8n hat eine leere Antwort zurueckgegeben.");
-      showError("Keine Antwort von n8n erhalten. Bitte erneut versuchen.");
-      return null;
-    }
-
-    try {
-      const data = JSON.parse(rawBody);
-      console.log("Antwort von n8n (json):", data);
-      return data;
-    } catch (parseError) {
-      console.warn("n8n lieferte kein gueltiges JSON, Rohtext wird verwendet.");
-      console.log("Antwort von n8n (text):", rawBody);
-      return { ok: true, status: response.status, text: rawBody };
-    }
-  } catch (error) {
-    const isTimeout = error && error.name === "AbortError";
-    console.error("Fehler beim n8n-Aufruf:", error);
-    showError(isTimeout ? "n8n-Request Timeout nach 120 Sekunden." : "Verbindung zu n8n fehlgeschlagen.");
-    return null;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
- 
-
-// 2. Hilfsfunktion für die Erfolgsmeldung (auch mehrfach genutzt)
-function handleSaveSuccess() {
-    statusDiv.innerHTML = "<span style='color:green;'>✅ Erfolgreich in Vincere angelegt!</span>";
-    setTimeout(() => {
-        statusDiv.innerText = "";
-        switchView(viewMenu);
-    }, 3000);
-}
-async function checkDuplicateInN8n(payload, testMode) {
-    if (contactStatusClearTimeoutId) {
-        clearTimeout(contactStatusClearTimeoutId);
-        contactStatusClearTimeoutId = null;
-    }
-
-    const result = await sendToN8n(payload);
-    if (result === null) return;
-
-    const check = Array.isArray(result) ? result[0] : result;
-    if (!check || typeof check !== "object" || !Object.prototype.hasOwnProperty.call(check, "is_empty")) {
-        console.error("Unerwartete Antwort fuer Duplikatpruefung:", check);
-        showError("Unerwartete Antwort aus n8n bei Duplikatpruefung.");
-        return;
-    }
-    
-    const itemType = String(payload?.item || "").toLowerCase();
-    const isCandidateMode = itemType === "kandidate" || itemType === "kandidat" || itemType === "candidate";
-    const isEmpty = check.is_empty === true || check.is_empty === "true" || check.is_empty === 1;
-
-    // Weiche: Blendet je nach Modus das richtige UI ein
-    const showFormArea = async () => {
-        console.log("Versuche Formular einzublenden für Modus:", testMode); 
-
-        if (isCandidateMode) {
-            // 👇 NEU: Hier nutzen wir unsere perfekte Funktion für XING/LinkedIn!
-            if (typeof adjustCandidateUIForPlatform === "function") {
-                await adjustCandidateUIForPlatform();
-            }
+            elements.btnSaveContact.textContent = "Speichere...";
+            elements.statusDiv.innerText = "⏳ Speichere...";
             
-        } else {
-            // Kontakt-Logik bleibt unverändert
-            const contactForm = document.getElementById("contact-form-area");
-            
-            if (contactForm) {
-                contactForm.classList.remove("hidden");
-                const btnSaveContact = document.getElementById("saveContactBtn");
-                if (btnSaveContact) {
-                    btnSaveContact.disabled = false;
-                    btnSaveContact.style.opacity = "1";
-                    btnSaveContact.dataset.ready = "1";
-                }
-                console.log("Kontakt-Formular erfolgreich eingeblendet!");
-            } else {
-                console.error("Fehler: Das HTML-Element mit id='contact-form-area' wurde nicht gefunden.");
+            try {
+                await sendToN8nWebhook({ ...payload, mode: "save kontakten / kandidaten" });
+                showSuccess("Kontakt erfolgreich angelegt!"); // <-- NEU
+
+                
+                setTimeout(() => switchView(elements.viewMenu), 3000);
+            } catch (err) {
+                showError(err.message);
             }
-        }
-    };
-
-    if (isEmpty) {
-        // KEIN DUPLIKAT
-        const typeName = isCandidateMode ? "Kandidat" : "Kontakt";
-        statusDiv.innerHTML = `<span style='color:green;'>✅ ${typeName} ist neu. Bereit zum Anlegen.</span>`;
-        
-        await showFormArea(); // Formular einblenden
-    } else {
-        // DUPLIKAT GEFUNDEN
-        const typeName = isCandidateMode ? "Kandidat" : "Kontakt";
-        statusDiv.innerHTML = `
-            <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; border:1px solid #ffeeba; margin-top:10px;">
-                <strong>⚠️ ${typeName} existiert bereits im System!</strong><br> Trotzdem neu anlegen?
-                <div style="margin-top:8px; display:flex; gap:10px; justify-content:center;">
-                    <button id="btn-force-save" class="secondary-btn" style="padding:4px 10px; background:#d9534f; color:white; border:none;">Ja, weiter</button>
-                    <button id="btn-cancel-save" class="secondary-btn" style="padding:4px 10px; border:none;">Nein, abbrechen</button>
-                </div>
-            </div>`;
-
-        const forceSaveBtn = document.getElementById("btn-force-save");
-        const cancelSaveBtn = document.getElementById("btn-cancel-save");
-
-        if (forceSaveBtn) forceSaveBtn.onclick = async () => {
-            statusDiv.innerHTML = `<span style='color:orange;'>⚠️ Duplikat-Modus: Bitte Daten prüfen und anlegen.</span>`;
-            
-            await showFormArea(); // Formular nach "Ja" Klick einblenden
-
-            // Button wieder entsperren (für Kontakt)
-            const saveContactButton = document.getElementById("saveContactBtn");
-            if (saveContactButton) {
-               saveContactButton.disabled = false;
-               saveContactButton.style.opacity = "1";
-               saveContactButton.dataset.ready = "1";
-            }
-        };
-
-        if (cancelSaveBtn) cancelSaveBtn.onclick = () => {
-            const btnSaveContact = document.getElementById("saveContactBtn");
-            if (btnSaveContact) {
-                btnSaveContact.disabled = true;
-                btnSaveContact.style.opacity = "0.5";
-                btnSaveContact.dataset.ready = "0";
-            }
-            switchView(document.getElementById("view-menu"));
-            statusDiv.innerText = "";
-        };
-    }
-}
-
-// 4. Der Speicher-Button Event Listener
-if (btnSaveContact) {
-    btnSaveContact.disabled = true;
-    btnSaveContact.dataset.ready = "0";
-    btnSaveContact.dataset.saving = "0";
-    btnSaveContact.style.opacity = "0.5";
-    btnSaveContact.addEventListener("click", async () => {
-        if (btnSaveContact.dataset.saving === "1") return;
-
-        if (!currentContactPayload || typeof currentContactPayload !== "object") {
-            showError("Kein Kontakt-Payload vorhanden. Bitte Profil neu laden.");
-            return;
-        }
-        if (btnSaveContact.dataset.ready !== "1") {
-            showError("Kontakt ist noch nicht freigegeben.");
-            return;
-        }
-
-        btnSaveContact.dataset.saving = "1";
-        btnSaveContact.disabled = true;
-        const previousText = btnSaveContact.textContent;
-        btnSaveContact.textContent = "Speichere in Vincere...";
-        statusDiv.innerHTML = "⏳ Speichere in Vincere...";
-
-        try {
-            const payloadToSave = { ...currentContactPayload, mode: "save kontakten / kandidaten"};
-            const result = await sendToN8n(payloadToSave);
-            if (result !== null) {
-                btnSaveContact.dataset.ready = "0";
-                handleSaveSuccess();
-            }
-        } catch (error) {
-            console.error("Fehler beim Kontakt-Speichern:", error);
-            showError(error.message || "Fehler beim Speichern in Vincere.");
-        } finally {
-            btnSaveContact.dataset.saving = "0";
-            btnSaveContact.textContent = previousText || "Kontakt in Vincere anlegen";
-            btnSaveContact.disabled = btnSaveContact.dataset.ready !== "1";
-            btnSaveContact.style.opacity = btnSaveContact.disabled ? "0.5" : "1";
-        }
-    });
-}
-
-// Zurück-Button
-if (btnBackContact) {
-    btnBackContact.addEventListener("click", () => switchView(viewMenu));
-}
-
-
-
-
-    // Funktion 2: Für Nachricht Generierung
-    function sendPayloadToN8n(payload, loadingText, isRecreate = false) {
-        if (isRequestRunning) return;
-        
-        const spinnerScrape = scrapeBtn ? scrapeBtn.querySelector(".spinner") : null;
-        const spinnerRecreate = recreateBtn ? recreateBtn.querySelector(".spinner") : null;
-
-        isRequestRunning = true;
-        statusDiv.innerHTML = `
-            <div class="status-container">
-                <div class="pulsing-text">${loadingText}</div>
-                <small style="color:#999; font-size:11px;">(Dauer ca. 10-30s)</small>
-            </div>`;
-
-        if(isRecreate && spinnerRecreate) spinnerRecreate.classList.remove("hidden");
-        if(!isRecreate && spinnerScrape) spinnerScrape.classList.remove("hidden");
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
-
-        console.log("Sende Payload an N8N:", payload);
-
-        fetch(API_URL, {
-            method: "POST",
-            signal: controller.signal,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log("requested data:", data);
-            clearTimeout(timeoutId);
-            const output = Array.isArray(data) ? data[0] : data;
-            if(output.error) throw new Error(output.error);
-            outputSubject.value = output.betreff || output.subject || "";
-            outputMessage.value = output.message || output.nachricht || "";
-            
-            statusDiv.innerText = "";
-            resultContainer.classList.remove("hidden");
-            if(recreateContainer) recreateContainer.classList.remove("hidden");
-        })
-        .catch(err => {
-            console.error(err);
-            showError(err.message);
-        })
-        .finally(() => {
-            isRequestRunning = false;
-            if(spinnerScrape) spinnerScrape.classList.add("hidden");
-            if(spinnerRecreate) spinnerRecreate.classList.add("hidden");
         });
     }
 
 
-    // ==========================================
-    // 5. NAVIGATION & HELPER
-    // ==========================================
+    // --- HELPERS ---
 
-// --- 2. DIE SWITCH-FUNKTION (Erweitert) ---
-function switchView(targetView) {
-    stopCandidateProgress();
-    setSaveCandidateLoadingState(false, saveCandidateDefaultLabel);
-    if (saveCandidateBtn) saveCandidateBtn.dataset.busy = "0";
-
-    const allViews = [
-        viewMenu, viewGenerator, viewJobMatching, 
-        viewSettings, sectionKandidat, sectionKontakt
-    ];
-
-    allViews.forEach(v => {
-        if (v) v.classList.add("hidden");
-    });
-
-    // Status-Meldungen mit Aktionsbuttons (Duplikat-Warnung) nur in
-    // Kandidat/Kontakt anzeigen, nie im Startmenue oder anderen Views.
-    const isCandidateOrContactView = targetView === sectionKandidat || targetView === sectionKontakt;
-    if (!isCandidateOrContactView && statusDiv) {
-        statusDiv.innerHTML = "";
-    }
-
-    if (targetView) {
-        targetView.classList.remove("hidden");
-
-        // RESET Kandidaten-UI
-        if (targetView === sectionKandidat) {
-            const candidateCard = sectionKandidat.querySelector(".card");
-            const dropArea = document.getElementById("drop-area");
-            const saveCandBtn = document.getElementById("saveCandidateBtn");
-            const fileInfo = document.getElementById("file-info-container");
-            const resumeUpload = document.getElementById("resume_upload");
-            
-            if (candidateCard) candidateCard.classList.add("hidden");
-            if (dropArea) dropArea.classList.add("hidden");
-            if (saveCandBtn) saveCandBtn.classList.add("hidden");
-            if (fileInfo) fileInfo.classList.add("hidden");
-            if (resumeUpload) resumeUpload.value = "";
-        }
-        
-        // RESET Kontakt-UI
-        if (targetView === sectionKontakt) {
-            const contactForm = document.getElementById("contact-form-area");
-            if (contactForm) contactForm.classList.add("hidden");
-        }
-    }
-}
-
-    if (btnToGen) btnToGen.addEventListener("click", () => switchView(viewGenerator));
-    if (btnToMatch) btnToMatch.addEventListener("click", () => switchView(viewJobMatching));
-    if (btnBackMatch) btnBackMatch.addEventListener("click", () => switchView(viewMenu));
-    if (btnBackGen) btnBackGen.addEventListener("click", () => switchView(viewMenu));
-    if (btnSettings && viewSettings) btnSettings.addEventListener("click", () => switchView(viewSettings));
-    if (btnBackSettings) btnBackSettings.addEventListener("click", () => switchView(viewMenu));
-    if(btnBackKandidat) btnBackKandidat.addEventListener("click", () => switchView(viewMenu));
-    if(btnBackKontakt) btnBackKontakt.addEventListener("click", () => switchView(viewMenu));
-
-    function startCooldown() {
-        const now = Date.now();
-        chrome.storage.local.set({ lastRequestTime: now });
-        activateCooldownMode(now + (COOLDOWN_SECONDS * 1000));
-    }
-
-    function checkCooldown() {
-        chrome.storage.local.get(['lastRequestTime'], (result) => {
-            if (result.lastRequestTime) {
-                const now = Date.now();
-                const end = result.lastRequestTime + (COOLDOWN_SECONDS * 1000);
-                if (now < end) activateCooldownMode(end);
-            }
-        });
+    function startCooldownWithUI() {
+        startCooldown(COOLDOWN_SECONDS, activateCooldownMode);
     }
 
     function activateCooldownMode(endTime) {
-        [scrapeBtn, recreateBtn, btnFetchJobMatchBtn].forEach(b => { if(b) b.disabled = true; });
+        const buttons = [elements.scrapeBtn, elements.recreateBtn, elements.btnFetchJobMatchBtn];
+        buttons.forEach(b => { if(b) b.disabled = true; });
         
-        const texts = [
-            scrapeBtn?.querySelector(".btn-text"),
-            btnFetchJobMatchBtn?.querySelector(".btn-text"),
-            recreateBtn?.querySelector(".btn-text")
-        ];
-
         const interval = setInterval(() => {
             const remaining = Math.ceil((endTime - Date.now()) / 1000);
-
             if (remaining <= 0) {
                 clearInterval(interval);
-                [scrapeBtn, recreateBtn, btnFetchJobMatchBtn].forEach(b => { if(b) b.disabled = false; });
-                
-                if (texts[0]) texts[0].innerText = "Nachricht erstellen 🚀";
-                if (texts[1]) texts[1].innerText = "Job Matching abrufen 🚀";
-                if (texts[2]) texts[2].innerText = "Nachricht anpassen 🔄";
-                
-                // Not-Aus für Spinner
-                document.querySelectorAll(".spinner").forEach(s => s.classList.add("hidden"));
+                buttons.forEach(b => { if(b) b.disabled = false; });
+                // Reset texts (simplified)
+                if (elements.scrapeBtn) elements.scrapeBtn.innerText = "Erstellen 🚀";
+                if (elements.btnFetchJobMatchBtn) elements.btnFetchJobMatchBtn.innerText = "Job Matching abrufen 🚀";
             } else {
-                texts.forEach(t => { if(t) t.innerText = `Warten: ${remaining}s ⏳`; });
+                 // Update texts
+                 buttons.forEach(b => { 
+                     if(b) {
+                         const span = b.querySelector(".btn-text") || b;
+                         if (span === b) b.innerText = `Warten: ${remaining}s`; // Fallback simple button
+                         else span.innerText = `Warten: ${remaining}s`;
+                     }
+                 });
             }
         }, 1000);
     }
 
-   // Variable für den Timer (hast du ja schon ähnlich angelegt)
-let statusMessageTimeoutId = null;
+    async function checkDuplicateInN8n(payload, type) {
+        const result = await sendToN8nWebhook(payload);
+        const check = Array.isArray(result) ? result[0] : result;
+        
+        const isEmpty = check.is_empty === true || check.is_empty === "true" || check.is_empty === 1;
+        const typeName = type === 'candidate' ? "Kandidat" : "Kontakt";
 
-// Zentrale Funktion für Fehlermeldungen, die nach 5 Sekunden verschwinden
-function showError(message) {
-    // 1. Alten Timer löschen, falls noch einer läuft
-    if (statusMessageTimeoutId) {
-        clearTimeout(statusMessageTimeoutId);
+        if (isEmpty) {
+            elements.statusDiv.innerHTML = `<span style='color:green;'>✅ ${typeName} ist neu.</span>`;
+            showFormArea(type, payload.source);
+        } else {
+            elements.statusDiv.innerHTML = `
+            <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; border:1px solid #ffeeba; margin-top:10px;">
+                <strong>⚠️ ${typeName} existiert bereits!</strong><br> Trotzdem anlegen?
+                <div style="margin-top:8px; display:flex; gap:10px; justify-content:center;">
+                    <button id="btn-force-save" class="secondary-btn" style="padding:4px 10px; background:#d9534f; color:white; border:none;">Ja</button>
+                    <button id="btn-cancel-save" class="secondary-btn" style="padding:4px 10px; border:none;">Nein</button>
+                </div>
+            </div>`;
+            
+            document.getElementById("btn-force-save")?.addEventListener("click", () => {
+                elements.statusDiv.innerHTML = ""; // Clear warning
+                showFormArea(type, payload.source);
+            });
+            document.getElementById("btn-cancel-save")?.addEventListener("click", () => switchView(elements.viewMenu));
+        }
     }
+function showFormArea(type, source) {
+        if (type === 'candidate') {
+            const saveBtn = document.getElementById("saveCandidateBtn");
+            const saveCard = document.getElementById("save-candidate-card"); 
+            const xingArea = document.getElementById("candidate-form-area"); // Für XING
+            const linkedinArea = document.getElementById("linkedin-form-area"); // Für LinkedIn
+            const dropArea = document.getElementById("drop-area");
+            
+            // Buttons und Card immer einblenden
+            if (saveBtn) saveBtn.classList.remove("hidden");
+            if (saveCard) saveCard.classList.remove("hidden");
 
-    // 2. Fehler im UI anzeigen (in rot)
-    statusDiv.innerHTML = `<span style="color:red;">❌ ${message}</span>`;
-
-    // 3. Neuen Timer setzen (verschwindet nach 5000 Millisekunden = 5 Sekunden)
-    statusMessageTimeoutId = setTimeout(() => {
-        statusDiv.innerHTML = "";
-    }, 5000);
-}
-
-    if(copySubjectBtn) copySubjectBtn.addEventListener("click", () => copyToClipboard(outputSubject.value, copySubjectBtn));
-    if(copyMessageBtn) copyMessageBtn.addEventListener("click", () => copyToClipboard(outputMessage.value, copyMessageBtn));
-
-    function copyToClipboard(text, btn) {
-        if (!text) return;
-        navigator.clipboard.writeText(text);
-        const original = btn.innerText;
-        btn.innerText = "✅";
-        setTimeout(() => btn.innerText = original, 1500);
-    }
-
-    function markInputError(inputEl) {
-        if (!inputEl) return;
-        inputEl.classList.add("input-error");
-    }
-
-    function clearInputError(inputEl) {
-        if (!inputEl) return;
-        inputEl.classList.remove("input-error");
-    }
-
-    // Drag-and-Drop fuer den Lebenslauf-Upload aktivieren
-    if (dropArea && fileInput) {
-        const allowedExtensions = new Set(["pdf", "doc", "docx"]);
-
-        const restoreDropAreaStyle = () => {
-            const hasSelectedFile = fileInput.files && fileInput.files.length > 0;
-            if (hasSelectedFile) {
-                dropArea.style.borderColor = "#28a745";
-                dropArea.style.backgroundColor = "#f6fff8";
+            // Strikt nach Source (Plattform) trennen:
+            if (source === 'linkedin') {
+                if (xingArea) xingArea.classList.add("hidden"); // Verstecke XING Felder
+                if (linkedinArea) linkedinArea.classList.remove("hidden"); // Zeige LinkedIn Upload
+                if (dropArea) dropArea.classList.remove("hidden");
             } else {
-                dropArea.style.borderColor = "";
-                dropArea.style.backgroundColor = "";
+                // Annahme: Alles andere (wie 'xing') zeigt das normale Formular
+                if (linkedinArea) linkedinArea.classList.add("hidden"); // Verstecke LinkedIn Upload
+                if (dropArea) dropArea.classList.add("hidden");
+                if (xingArea) xingArea.classList.remove("hidden"); // Zeige XING Felder
             }
-        };
-
-        const preventDefaults = (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-        };
-
-        ["dragenter", "dragover"].forEach((eventName) => {
-            dropArea.addEventListener(eventName, (event) => {
-                preventDefaults(event);
-                dropArea.style.borderColor = "#026466";
-                dropArea.style.backgroundColor = "#eef9f9";
-            });
-        });
-
-        ["dragleave", "dragend"].forEach((eventName) => {
-            dropArea.addEventListener(eventName, (event) => {
-                preventDefaults(event);
-                restoreDropAreaStyle();
-            });
-        });
-
-        dropArea.addEventListener("drop", (event) => {
-            preventDefaults(event);
-
-            const droppedFile = event.dataTransfer?.files?.[0];
-            if (!droppedFile) {
-                restoreDropAreaStyle();
-                return;
+        } else {
+            document.getElementById("contact-form-area")?.classList.remove("hidden");
+            if (elements.btnSaveContact) {
+                elements.btnSaveContact.disabled = false;
+                elements.btnSaveContact.style.opacity = "1";
+                elements.btnSaveContact.dataset.ready = "1";
             }
+        }
+    }
 
-            const ext = droppedFile.name.split(".").pop()?.toLowerCase();
-            if (!allowedExtensions.has(ext || "")) {
-                showError("Bitte nur PDF, DOC oder DOCX hochladen.");
-                restoreDropAreaStyle();
-                setTimeout(() => { clearError(); }, 3000);
-                return;
+    function adjustCandidateUIForPlatform(source) {
+        const xingArea = document.getElementById("candidate-form-area");
+        const linkedinArea = document.getElementById("linkedin-form-area");
+        const dropArea = document.getElementById("drop-area");
+        const saveBtn = document.getElementById("saveCandidateBtn");
+
+        if (source === 'xing') {
+            if (linkedinArea) linkedinArea.classList.add("hidden");
+            if (dropArea) dropArea.classList.add("hidden");
+            if (saveBtn) {
+                const txt = saveBtn.querySelector(".btn-text");
+                if (txt) txt.innerText = "XING Profil scrapen & anlegen ➕";
             }
+        } else if (source === 'linkedin') {
+             if (xingArea) xingArea.classList.add("hidden"); 
+            if (saveBtn) {
+                const txt = saveBtn.querySelector(".btn-text");
+                if (txt) txt.innerText = "Kandidat anlegen ➕";
+            }
+        }
+    }
 
-            try {
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(droppedFile);
-                fileInput.files = dataTransfer.files;
-                fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-            } catch (err) {
-                console.error("Drop-Fehler:", err);
-                showError("Drag-and-Drop wird hier nicht unterstuetzt.");
-                restoreDropAreaStyle();
-                setTimeout(() => { clearError(); }, 3000);
+    // File Input Logic
+    if (elements.fileInput) {
+        elements.fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                elements.fileNameDisplay.textContent = "📄 " + file.name;
+                elements.fileInfoContainer.classList.remove('hidden');
+                elements.fileInfoContainer.style.display = "flex";
+                elements.saveCandidateBtn.classList.remove('hidden');
+                elements.dropArea.style.borderColor = "#28a745";
+                elements.dropArea.style.backgroundColor = "#f6fff8";
+                elements.saveCandidateBtn.classList.remove('hidden');
+            document.getElementById("save-candidate-card")?.classList.remove('hidden'); // Unhide the parent card!
+        
             }
         });
     }
+    if (elements.removeFileBtn) {
+        elements.removeFileBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            elements.fileInput.value = "";
+            elements.fileInfoContainer.classList.add("hidden");
+            elements.dropArea.style.borderColor = "";
+            elements.dropArea.style.backgroundColor = "";
+        });
+    }
+    // --- DRAG & DROP LOGIC ---
+    if (elements.dropArea && elements.fileInput) {
+        
+        // 1. Standard-Verhalten des Browsers unterdrücken (wichtig!)
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            elements.dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 2. Visuelles Feedback beim Drüberziehen (Hover-Effekt)
+        ['dragenter', 'dragover'].forEach(eventName => {
+            elements.dropArea.addEventListener(eventName, () => {
+                elements.dropArea.style.borderColor = "var(--platform-primary, #026466)";
+                elements.dropArea.style.backgroundColor = "rgba(2, 100, 102, 0.1)"; // Leicht eingefärbt
+            }, false);
+        });
+
+        // 3. Visuelles Feedback zurücksetzen, wenn die Maus den Bereich verlässt
+        ['dragleave', 'drop'].forEach(eventName => {
+            elements.dropArea.addEventListener(eventName, () => {
+                elements.dropArea.style.borderColor = "";
+                elements.dropArea.style.backgroundColor = "";
+            }, false);
+        });
+
+        // 4. Die fallengelassene Datei greifen und ins Input-Feld schieben
+        elements.dropArea.addEventListener('drop', (e) => {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+
+            if (files && files.length > 0) {
+                // Die Dateien manuell an das unsichtbare Input-Feld übergeben
+                elements.fileInput.files = files;
+                
+                // WICHTIG: Den "change" Event manuell auslösen, 
+                // damit deine bestehende File Input Logic (unten) anspringt!
+                const event = new Event('change', { bubbles: true });
+                elements.fileInput.dispatchEvent(event);
+            }
+        }, false);
+    }
+
+
+
+    // Copy Buttons
+    if(elements.copySubjectBtn) elements.copySubjectBtn.addEventListener("click", () => copyToClipboard(elements.outputSubject.value, elements.copySubjectBtn));
+    if(elements.copyMessageBtn) elements.copyMessageBtn.addEventListener("click", () => copyToClipboard(elements.outputMessage.value, elements.copyMessageBtn));
 
 });

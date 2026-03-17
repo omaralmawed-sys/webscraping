@@ -84,8 +84,6 @@
             <label>Jobtitel</label>
             <input type="text" id="candidate_jobtitle" placeholder="z.B. IT Manager">
         </div>
-
- 
     </div>
 
     <div id="linkedin-form-area" class="card hidden">
@@ -107,16 +105,19 @@
         </div>
     </div>
 
-    <div class="card">
-       <button id="saveCandidateBtn" class="main-btn hidden" style="margin-top: 15px; background-color: #026466;">
-        <span class="btn-text">Kandidat anlegen ➕</span>
-        <div class="spinner hidden"></div>
-    </button>
+    
+    <div id="save-candidate-card" class="card">
+        <button id="saveCandidateBtn" class="main-btn hidden" style="margin-top: 15px; background-color: #026466;">
+            <span class="btn-text">Kandidat anlegen ➕</span>
+            <div class="spinner hidden"></div>
+        </button>
+    </div>
+    
  </div>
    
    
 </div>
-
+<div></div>
 
   <div id="view-settings" class="hidden">
     <button id="backFromSettings" class="nav-back-btn">
@@ -214,6 +215,6 @@
   </div>
 
   <div id="statusMessage"></div>
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

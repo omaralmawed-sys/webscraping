@@ -30,6 +30,13 @@ Recruiting Tools is a Chrome extension designed to streamline the recruitment pr
 * Added platform switch notification and UI polish updates in popup styling.
 * Added robust n8n response handling for empty responses and non-JSON payloads.
 
+## Documentation
+
+For detailed technical documentation, please refer to:
+
+*   [**Project Documentation**](DOCUMENTATION.md): Comprehensive guide to the architecture, data flow, and key workflows.
+*   [**Modules Documentation**](modules/README.md): Detailed description of the core logic modules in the `modules/` directory.
+
 ## Installation
 
 1.  Clone this repository or download the source code.
@@ -37,18 +44,6 @@ Recruiting Tools is a Chrome extension designed to streamline the recruitment pr
 3.  Enable **Developer mode** in the top right corner.
 4.  Click **Load unpacked**.
 5.  Select the directory containing the extension files (`webscraping` folder).
-
-## File Structure
-
-* `manifest.json`: Configuration file for the Chrome extension.
-* `popup.html`: The user interface for the extension popup.
-* `popup.js`: Logic for the popup UI, handling user interactions and API communication.
-* `background.js`: Service worker handling background tasks, specifically for reliable LinkedIn scraping.
-* `content-linkedin.js`: Content script for scraping data from LinkedIn profiles.
-* `content-xing.js`: Content script for scraping data from XING profiles.
-* `kandidaten-anlegen.js`: Dedicated LinkedIn scraper used for candidate/contact creation workflows.
-* `style.css`: Styles for the popup interface.
-* `icon1.png`: Extension icon.
 
 ## Usage
 
@@ -72,17 +67,13 @@ Recruiting Tools is a Chrome extension designed to streamline the recruitment pr
     * Wait for duplicate check.
     * Upload CV (`.pdf`, `.docx`, `.doc`) and click **"Kandidat anlegen"**.
 
-## Technical Details
+## File Structure
 
-### Scraping Logic
-* **XING:** Scrapes data directly from the active tab using `content-xing.js`.
-* **LinkedIn:** Uses a robust background scraping method. The extension opens the profile in a background tab, injects `content-linkedin.js`, and retrieves the data to avoid context invalidation issues.
-* **Kandidat/Kontakt Creation:** Uses a dedicated scrape flow to collect profile basics (name, title, image, URL) before duplicate check and save operations.
-
-### API Integration
-The extension communicates with n8n webhooks for different workflows:
-* Message generation / matching: `https://xingproxy-842321698577.europe-west1.run.app/xing`
-* Candidate/contact duplicate check and save: `https://n8n.stolzberger.cloud/webhook/36f1d14f-c7eb-427c-a738-da2dfb5b9649`
+* `manifest.json`: Configuration file for the Chrome extension.
+* `popup.html`: The user interface for the extension popup.
+* `popup.js`: Logic for the popup UI, handling user interactions and API communication.
+* `background.js`: Service worker handling background tasks.
+* `modules/`: Directory containing core logic modules (see [Modules Documentation](modules/README.md)).
 
 ## Permissions
 
@@ -91,7 +82,7 @@ The extension requires the following permissions:
 * `scripting`: To inject content scripts dynamically.
 * `storage`: To save recruiter settings and cached profile data.
 * `tabs`: To manage tabs for background scraping.
-* `sidePanel`: To open the extension in the side panel (configured in manifest).
+* `sidePanel`: To open the extension in the side panel.
 
 ## Troubleshooting
 
@@ -99,6 +90,23 @@ The extension requires the following permissions:
 * **Scraping Fails:** Refresh the page and try again. Ensure you are on a valid candidate profile page.
 * **API Errors:** Check your internet connection and the status of the n8n webhook.
 
+## Development & Tools
+
+### Testing
+A simple unit testing suite is available to verify core logic:
+1.  Run `node test.mjs` in the root directory.
+2.  This verifies utility functions like `getNameParts` and `escapeHtml`.
+
+### Dev Booster Command
+The project now supports the `/dev-booster` command via Gemini CLI. This command coordinates a comprehensive audit:
+* **Code Quality Audit:** Scans for anti-patterns and missing documentation.
+* **Code Simplification:** Suggests refactors for complex logic.
+* **UI/UX Audit:** Checks for accessibility (ARIA labels) and responsiveness.
+* **Testing:** Runs unit tests for core modules.
+* **Documentation:** Ensures JSDoc coverage for all exported functions.
+
+To use it, run `/dev-booster` in your Gemini CLI session.
+
 ## License
 
-[Stolzberger ]
+[ MIT ]
