@@ -56,12 +56,15 @@ if (!window.__linkedinCandidateScraperRegistered) {
         }
 
         // Profilbild URL
-        const profileImg = document.querySelector('div[data-view-name="profile-top-card-member-photo"] img')?.src || "";
+        // Extrahiert die URL des Haupt-Profilbildes
+        const profileImgUrl = document.querySelector('div[aria-label="Profilfoto"] img')?.src || "";
+
+        console.log(profileImgUrl);
 
         return {
             fullName: fullName || "Unbekannt",
             position: currentJobTitle || "Nicht gefunden",
-            profileImage: profileImg,
+            profileImage: profileImgUrl,
             url: window.location.href
         };
     }

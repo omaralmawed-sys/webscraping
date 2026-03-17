@@ -316,6 +316,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
+    async function scrapeDataXingBase() {
+        // 1. Aktiven Tab finden
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
+        
+        const tab = tabs[0]; 
+        tabUrl = tab.url || "";
+       
+
+        console.log("Aktive Tab URL:", tabUrl);
+
+        if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {  
+            console.log("🟢 Xing Seite erkannt.");
+            return  await handleXingScrape(tab.id); 
+        }
+        else {
+            throw new Error("Bitte öffne   LinkedIn Profil.");
+        }
+    }
+
+
+
     async function handleXingScrape(tabId) {
          try {
             return await sendMessageToTab(tabId, { action: "scrape" }); 
@@ -913,138 +936,235 @@ const btnTabKontakt = document.getElementById("tab-kontakt");
 
 
 // Variable zum Zwischenspeichern der Scraper-Daten für den Upload
+// Variable zum Zwischenspeichern der Scraper-Daten für den Upload
 let currentScrapedCandidateForUpload = null;
 let contactStatusClearTimeoutId = null;
+// 🎯 ZUSAMMENGEFÜHRTER TAB-KLICK (UI anpassen + Duplikat prüfen)
 if (btnTabKandidat) {
     btnTabKandidat.addEventListener("click", async () => {
-        // 1. UI Vorbereiten
+      
         switchView(sectionKandidat);
+      
+
+        // Formular-Bereiche verstecken, bis der Check durch ist
+        document.getElementById("candidate-form-area")?.classList.add("hidden");
+        document.getElementById("linkedin-form-area")?.classList.add("hidden");
         statusDiv.innerHTML = "🔍 Bereite Profil-Daten für Upload vor...";
 
-        try {
-            // 2. Den Scraper aufrufen (deine existierende Methode)
-            const response = await scrapeDataLinkedBase();
+      
 
-            // 3. ERFOLGREICH GECRAPT:
+
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
+            const tab = tabs[0]; 
+            const tabUrl = tab.url || "";
+            
+            let response = null; 
+            let profileSource = ""; 
+
+            if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {
+                response = await scrapeDataXingBase(tab.id); 
+                profileSource = "xing";
+            } else if(tabUrl.includes("linkedin.com/in")) {
+                response = await scrapeDataLinkedBase();
+                profileSource = "linkedin";
+            } else {
+                throw new Error("Bitte öffne ein LinkedIn oder Xing Profil.");
+            }
+
+            // ERFOLGREICH GESCRAPT:
             if (response && response.data) {
-                // Felder im UI füllen
+               
                 fillContactFields(response.data);
+                fillCandidatesFields(response.data);
                 
-                // Recruiter Daten abrufen
                 const recruiter = await getRecruiterData();
-                const { firstName, lastName } = getNameParts(response.data.fullName);
+                const rawName = response.data.profile?.name || response.data.fullName || "";
+                const { firstName, lastName } = getNameParts(rawName);
+                const jobTitle = response.data.profile?.role || response.data.position || "";
                 
-                // Payload für n8n zusammenbauen
                 currentContactPayload = {
                     mode: "check kontakten / kandidaten",
                     item:"kandidate",
                     mode_create: "create_kontakt_candidate",
                     firstName,
                     lastName,
-                    jobTitle: response.data.position || "",
+                    jobTitle: jobTitle,
                     profileImage: response.data.profileImage || "",
                     recruiter_name: recruiter.rName || "Unbekannt",
                     recruiter_email: recruiter.rEmail || "Keine Email",
-                    profileUrl: response.data.url || "" 
+                    profileUrl: response.data.url || "",
+                    source: profileSource
                 };
 
-                // 4. Duplikatsprüfung in n8n starten
-                // (Nutzt die optimierte Funktion aus unserer vorherigen Nachricht)
                 await checkDuplicateInN8n(currentContactPayload,"save kontakten / kandidaten");
-                
             } else {
                 showError("Keine Daten vom Profil erhalten.");
             }
-
         } catch (err) {
             console.error("Scrape Fehler:", err);
-            // Zeigt die Fehlermeldung aus deiner catch-Logik in scrapeDataLinkedBase an
             showError(err.message || "Fehler beim Initialisieren des Scrapers.");
         }
     });
 }
+// 🛠️ FUNKTION: UI anpassen
+async function adjustCandidateUIForPlatform() {
+    try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || tabs.length === 0) return;
+        
+        const tabUrl = tabs[0].url || "";
+        const isXing = tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles");
+        const isLinkedIn = tabUrl.includes("linkedin.com/in");
+        
+        const xingArea = document.getElementById("candidate-form-area");
+        const linkedinArea = document.getElementById("linkedin-form-area");
+        const dropArea = document.getElementById("drop-area");
+        const saveBtn = document.getElementById("saveCandidateBtn");
+        
+        if (isXing) {
+            if (xingArea) { xingArea.style.display = ""; xingArea.classList.remove("hidden"); }
+            if (linkedinArea) linkedinArea.style.display = "none";
+            if (saveBtn) {
+                saveBtn.classList.remove("hidden");
+                const btnText = saveBtn.querySelector('.btn-text');
+                if (btnText) btnText.innerText = "XING Profil scrapen & anlegen ➕";
+            }
+        } else if (isLinkedIn) {
+            if (xingArea) xingArea.style.display = "none";
+            if (linkedinArea) { linkedinArea.style.display = ""; linkedinArea.classList.remove("hidden"); }
+            if (dropArea) { dropArea.style.display = ""; dropArea.classList.remove("hidden"); }
+            if (saveBtn) {
+                saveBtn.classList.remove("hidden");
+                const btnText = saveBtn.querySelector('.btn-text');
+                if (btnText) btnText.innerText = "Kandidat anlegen ➕";
+            }
+        }
+    } catch (error) {
+        console.error("Fehler bei UI-Anpassung:", error);
+    }
+}
 
 
-
+// 💾 KANDIDAT SPEICHERN BUTTON LOGIK
 if (saveCandidateBtn) {
     saveCandidateBtn.dataset.busy = "0";
     saveCandidateBtn.addEventListener('click', async () => {
         if (saveCandidateBtn.dataset.busy === "1") return;
 
-        const file = fileInput && fileInput.files ? fileInput.files[0] : null;
-        if (!file) {
-            showError("Bitte erst eine Datei auswählen.");
-            return;
-        }
-
-        saveCandidateBtn.dataset.busy = "1";
-        setSaveCandidateLoadingState(true, "Verarbeite PDF...");
-        startCandidateProgress("Verarbeite PDF...");
-
         try {
-            // 1. Datei in Base64 umwandeln
-            const fileBase64 = await getBase64(file);
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
+            
+            const tab = tabs[0];
+            const tabUrl = tab.url || "";
+            const isXing = tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles");
+            const isLinkedIn = tabUrl.includes("linkedin.com/in");
+
+            if (!isXing && !isLinkedIn) {
+                showError("Bitte öffne ein LinkedIn oder Xing Profil.");
+                return;
+            }
+
+            let file = null;
+            let fileBase64 = null;
+
+            if (isLinkedIn) {
+                file = fileInput && fileInput.files ? fileInput.files[0] : null;
+                if (!file) {
+                    showError("Bitte erst eine PDF-Datei für das LinkedIn-Profil auswählen.");
+                    return;
+                }
+            }
+
+            saveCandidateBtn.dataset.busy = "1";
+            setSaveCandidateLoadingState(true, isLinkedIn ? "Verarbeite PDF..." : "Lade XING Daten...");
+            startCandidateProgress(isLinkedIn ? "Verarbeite PDF..." : "Scrape XING Profil...");
+
+            if (isLinkedIn && file) {
+                fileBase64 = await getBase64(file);
+            }
+
             updateCandidateProgress("Lade Profildaten...");
             
-            // 2. Scraper aufrufen
-            const scrape = await scrapeDataLinkedBase();
+            let scrape = null;
+            let profileSource = "";
+            let dataXing = null;
+
+            if (isXing) {
+                scrape = await handleXingScrape(tab.id);
+                profileSource = "xing";
+                dataXing = scrape ? scrape.data : null;
+            } else if (isLinkedIn) {
+                scrape = await scrapeDataLinkedBase();
+                profileSource = "linkedin";
+            }
 
             if (scrape && scrape.data) {
-                // Recruiter Daten abrufen
                 const recruiter = await getRecruiterData();
-                const { firstName, lastName } = getNameParts(scrape.data.fullName);
+                
+                // 👇 WICHTIG: Lese zuerst die Werte aus den Textfeldern (falls der Nutzer sie bearbeitet hat!)
+                const inputName = document.getElementById("candidate_fullname")?.value;
+                const inputJob = document.getElementById("candidate_jobtitle")?.value;
+                const inputImg = document.getElementById("candidate_image_url")?.value;
 
-                // 3. Payload zusammenbauen (Datei + Scraper Daten)
-                // WICHTIG: Wir nutzen scrape.data (nicht response.data!)
+                // Fallback auf die Scrape-Daten, falls das Feld leer ist
+                const rawName = inputName || scrape.data.profile?.name || scrape.data.fullName || "";
+                const { firstName, lastName } = getNameParts(rawName);
+                const jobTitle = inputJob || scrape.data.profile?.role || scrape.data.position || "";
+                const profileImage = inputImg || scrape.data.profileImage || "";
+
                 const payload = {
                     mode: "save kontakten / kandidaten",
-                    item:"kandidate",
+                    item: "kandidate",
                     mode_create: "create_kontakt_candidate",
-                    source: "resume_upload",
-                    fileName: file.name,
-                    fileData: fileBase64,
+                    source: profileSource,
                     firstName,
                     lastName,
-                    jobTitle: scrape.data.position || "",
-                    profileImage: scrape.data.profileImage || "",
+                    jobTitle: jobTitle,
+                    profileImage: profileImage,
                     recruiter_name: recruiter.rName || "Unbekannt",
                     recruiter_email: recruiter.rEmail || "Keine Email",
-                    profileUrl: scrape.data.url || "",
+                    profileUrl: scrape.data.url || tabUrl,
+                    data: dataXing
                 };
 
-                console.log("Sende Paket an n8n:", payload);
+                if (fileBase64) {
+                    payload.fileName = file.name;
+                    payload.fileData = fileBase64;
+                }
 
-                // 4. Absenden an n8n (Nutzt deine zentrale sendToN8n Methode)
                 setSaveCandidateLoadingState(true, "Sende an Vincere...");
                 updateCandidateProgress("Sende Daten an Vincere...");
                 const n8nResult = await sendToN8n(payload);
 
-                if (n8nResult) { // Wenn sendToN8n Erfolg meldet (nicht null)
+                if (n8nResult) {
                     stopCandidateProgress();
-                    statusDiv.innerHTML = `<span style="color:green;">✅ Kandidat & Datei erfolgreich angelegt!</span>`;
+                    const successMsg = fileBase64 ? "✅ Kandidat & Datei erfolgreich angelegt!" : "✅ Kandidat erfolgreich angelegt!";
+                    statusDiv.innerHTML = `<span style="color:green;">${successMsg}</span>`;
+                    
                     setTimeout(() => {
                         statusDiv.innerText = "";
-                        resetUpload(); // Falls du diese Funktion hast
-                        switchView(viewMenu);
+                        if (typeof resetUpload === "function") resetUpload();
+                        const startMenu = document.getElementById("view-menu");
+                        if (typeof switchView === "function" && startMenu) switchView(startMenu);
                     }, 3000);
                 }
-
             } else {
-                showError("Keine Profildaten gefunden. Bitte LinkedIn Profil prüfen.");
+                showError("Keine Profildaten gefunden. Bitte das Profil prüfen.");
             }
         } catch (error) {
-            stopCandidateProgress();
             console.error("Upload Fehler:", error);
             showError("Kritischer Fehler beim Upload: " + error.message);
         } finally {
             stopCandidateProgress();
             saveCandidateBtn.dataset.busy = "0";
-            setSaveCandidateLoadingState(false, saveCandidateDefaultLabel);
+            const defaultLabel = typeof saveCandidateDefaultLabel !== "undefined" ? saveCandidateDefaultLabel : "Speichern";
+            setSaveCandidateLoadingState(false, defaultLabel);
         }
     });
 }
-
-
 
     // Felder aus der Kontakt-Sektion
     // const contactNameInput = document.getElementById("contact_fullname");
@@ -1056,6 +1176,7 @@ if (saveCandidateBtn) {
     // Wenn man auf "Kontakt anlegen" klickt
     // Variable zum Zwischenspeichern der aktuellen Payload
     let currentContactPayload = null;
+
 
 
     if (btnTabKontakt) {
@@ -1072,17 +1193,48 @@ if (saveCandidateBtn) {
         }
 
         try {
-            // 2. Den Scraper aufrufen (deine existierende Methode)
-            const response = await scrapeDataLinkedBase();
+
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tabs || tabs.length === 0) throw new Error("Kein Tab gefunden.");
+            
+            const tab = tabs[0]; 
+            const tabUrl = tab.url || "";
+            console.log("Aktive Tab URL:", tabUrl);
+
+            // Declare response OUTSIDE the if-blocks so Step 3 can access it
+            let response = null; 
+            let profileSource = ""; // <-- NEU: Variable für die Plattform-Quelle
+
+            if(tabUrl.includes("xing.com/xtm/profiles") || tabUrl.includes("xing.com/xtm/search/profiles")) {
+                // 2a. Xing Scraper aufrufen
+                response = await scrapeDataXingBase(tab.id); 
+                profileSource = "xing"; // <-- NEU: Setze Quelle auf Xing
+            }
+            else if(tabUrl.includes("linkedin.com/in")) {
+                // 2b. LinkedIn Scraper aufrufen
+                response = await scrapeDataLinkedBase();
+                profileSource = "LinkedIn"; // <-- NEU: Setze Quelle auf Xing
+            } else {
+                throw new Error("Bitte öffne ein LinkedIn oder Xing Profil.");
+            }
+
 
             // 3. ERFOLGREICH GECRAPT:
             if (response && response.data) {
                 // Felder im UI füllen
                 fillContactFields(response.data);
+                fillCandidatesFields(response.data);
                 
                 // Recruiter Daten abrufen
+                  // Recruiter Daten abrufen
                 const recruiter = await getRecruiterData();
-                const { firstName, lastName } = getNameParts(response.data.fullName);
+                
+                // 👇 FIX: Hole den Namen aus profile.name (XING) oder fullName (LinkedIn)
+                const rawName = response.data.profile?.name || response.data.fullName || "";
+                const { firstName, lastName } = getNameParts(rawName);
+                
+                // 👇 FIX: Das gleiche Prinzip für den Jobtitel (XING nutzt profile.role)
+                const jobTitle = response.data.profile?.role || response.data.position || "";
                 
                 // Payload für n8n zusammenbauen
                 currentContactPayload = {
@@ -1091,11 +1243,12 @@ if (saveCandidateBtn) {
                     item:"kontakten",
                     firstName,
                     lastName,
-                    jobTitle: response.data.position || "",
+                    jobTitle: jobTitle,
                     profileImage: response.data.profileImage || "",
                     recruiter_name: recruiter.rName || "Unbekannt",
                     recruiter_email: recruiter.rEmail || "Keine Email",
-                    profileUrl: response.data.url || "" 
+                    profileUrl: response.data.url || "" ,
+                    source:profileSource
                 };
 
                 // 4. Duplikatsprüfung in n8n starten
@@ -1121,32 +1274,62 @@ function fillContactFields(data) {
     const imgDisplay = document.getElementById("contact_image_display");
     const imgUrlHidden = document.getElementById("contact_image_url");
 
-    // Texte befüllen
-    if(nameInput) nameInput.value = data.fullName || "";
-    if(jobInput) jobInput.value = data.position || "";
+    // 👇 KORREKTUR: Kompatibel mit XING und LinkedIn
+    const rawName = data.profile?.name || data.fullName || "";
+    const jobTitle = data.profile?.role || data.position || "";
+
+    if(nameInput) nameInput.value = rawName;
+    if(jobInput) jobInput.value = jobTitle;
 
     // Bild-Logik
     if (imgDisplay && data.profileImage) {
         imgDisplay.src = data.profileImage;
-        imgDisplay.style.display = "block"; // Sichtbar machen
-        
-        if(imgUrlHidden) imgUrlHidden.value = data.profileImage; // URL für später speichern
+        imgDisplay.style.display = "block"; 
+        if(imgUrlHidden) imgUrlHidden.value = data.profileImage; 
     } else if (imgDisplay) {
-        imgDisplay.style.display = "none"; // Verstecken, falls kein Bild da
+        imgDisplay.style.display = "none"; 
     }
 
     const infoMessage = "✅ Profildaten übernommen.";
     statusDiv.innerText = infoMessage;
 
-    if (contactStatusClearTimeoutId) {
-        clearTimeout(contactStatusClearTimeoutId);
+    if (contactStatusClearTimeoutId) clearTimeout(contactStatusClearTimeoutId);
+    contactStatusClearTimeoutId = setTimeout(() => {
+        if (statusDiv.innerText === infoMessage) statusDiv.innerText = "";
+        contactStatusClearTimeoutId = null;
+    }, 2000);
+}
+
+// Hilfsfunktion: Befüllt die KANDIDATEN-Felder und zeigt das BILD an
+function fillCandidatesFields(data) {
+    if (!data || typeof data !== "object") return;
+    const nameInput = document.getElementById("candidate_fullname");
+    const jobInput = document.getElementById("candidate_jobtitle");
+    const imgDisplay = document.getElementById("candidate_image_display");
+    const imgUrlHidden = document.getElementById("candidate_image_url");
+    
+    // 👇 KORREKTUR: Kompatibel mit XING und LinkedIn
+    const rawName = data.profile?.name || data.fullName || "";
+    const jobTitle = data.profile?.role || data.position || "";
+
+    if(nameInput) nameInput.value = rawName;
+    if(jobInput) jobInput.value = jobTitle;
+
+    // Bild-Logik
+    if (imgDisplay && data.profileImage) {
+        imgDisplay.src = data.profileImage;
+        imgDisplay.style.display = "block"; 
+        if(imgUrlHidden) imgUrlHidden.value = data.profileImage; 
+    } else if (imgDisplay) {
+        imgDisplay.style.display = "none"; 
     }
 
+    const infoMessage = "✅ Profildaten übernommen.";
+    statusDiv.innerText = infoMessage;
+
+    if (contactStatusClearTimeoutId) clearTimeout(contactStatusClearTimeoutId);
     contactStatusClearTimeoutId = setTimeout(() => {
-        // Nur leeren, wenn noch dieselbe Zwischenmeldung steht.
-        if (statusDiv.innerText === infoMessage) {
-            statusDiv.innerText = "";
-        }
+        if (statusDiv.innerText === infoMessage) statusDiv.innerText = "";
         contactStatusClearTimeoutId = null;
     }, 2000);
 }
@@ -1154,7 +1337,7 @@ function fillContactFields(data) {
 // 1. Zentrale Methode für den API-Aufruf
 async function sendToN8n(payload) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 70000);
+  const timeoutId = setTimeout(() => controller.abort(), 120000);
 
   try {
     if (!payload || typeof payload !== "object") {
@@ -1201,7 +1384,7 @@ async function sendToN8n(payload) {
   } catch (error) {
     const isTimeout = error && error.name === "AbortError";
     console.error("Fehler beim n8n-Aufruf:", error);
-    showError(isTimeout ? "n8n-Request Timeout nach 70 Sekunden." : "Verbindung zu n8n fehlgeschlagen.");
+    showError(isTimeout ? "n8n-Request Timeout nach 120 Sekunden." : "Verbindung zu n8n fehlgeschlagen.");
     return null;
   } finally {
     clearTimeout(timeoutId);
@@ -1217,7 +1400,6 @@ function handleSaveSuccess() {
         switchView(viewMenu);
     }, 3000);
 }
-
 async function checkDuplicateInN8n(payload, testMode) {
     if (contactStatusClearTimeoutId) {
         clearTimeout(contactStatusClearTimeoutId);
@@ -1233,42 +1415,33 @@ async function checkDuplicateInN8n(payload, testMode) {
         showError("Unerwartete Antwort aus n8n bei Duplikatpruefung.");
         return;
     }
+    
     const itemType = String(payload?.item || "").toLowerCase();
     const isCandidateMode = itemType === "kandidate" || itemType === "kandidat" || itemType === "candidate";
     const isEmpty = check.is_empty === true || check.is_empty === "true" || check.is_empty === 1;
 
-    const showCandidateUploadArea = () => {
-        const candidateSection = document.getElementById("section-kandidat");
-        const candidateCard = candidateSection ? candidateSection.querySelector(".card") : null;
-        const dropArea = document.getElementById("drop-area");
-        const saveCandBtn = document.getElementById("saveCandidateBtn");
-
-        if (candidateCard) candidateCard.classList.remove("hidden");
-        if (dropArea) dropArea.classList.remove("hidden");
-        if (saveCandBtn) {
-            saveCandBtn.classList.remove("hidden");
-            saveCandBtn.disabled = false;
-            saveCandBtn.dataset.busy = "0";
-        }
-    };
-
     // Weiche: Blendet je nach Modus das richtige UI ein
-    const showFormArea = () => {
-        console.log("Versuche Formular einzublenden für Modus:", testMode); // <-- Hilft dir bei der Fehlersuche
+    const showFormArea = async () => {
+        console.log("Versuche Formular einzublenden für Modus:", testMode); 
 
         if (isCandidateMode) {
-            showCandidateUploadArea();
+            // 👇 NEU: Hier nutzen wir unsere perfekte Funktion für XING/LinkedIn!
+            if (typeof adjustCandidateUIForPlatform === "function") {
+                await adjustCandidateUIForPlatform();
+            }
             
         } else {
+            // Kontakt-Logik bleibt unverändert
             const contactForm = document.getElementById("contact-form-area");
             
             if (contactForm) {
                 contactForm.classList.remove("hidden");
+                const btnSaveContact = document.getElementById("saveContactBtn");
                 if (btnSaveContact) {
-            btnSaveContact.disabled = false;
-            btnSaveContact.style.opacity = "1";
-            btnSaveContact.dataset.ready = "1";
-        }
+                    btnSaveContact.disabled = false;
+                    btnSaveContact.style.opacity = "1";
+                    btnSaveContact.dataset.ready = "1";
+                }
                 console.log("Kontakt-Formular erfolgreich eingeblendet!");
             } else {
                 console.error("Fehler: Das HTML-Element mit id='contact-form-area' wurde nicht gefunden.");
@@ -1281,7 +1454,7 @@ async function checkDuplicateInN8n(payload, testMode) {
         const typeName = isCandidateMode ? "Kandidat" : "Kontakt";
         statusDiv.innerHTML = `<span style='color:green;'>✅ ${typeName} ist neu. Bereit zum Anlegen.</span>`;
         
-        showFormArea(); // Formular einblenden
+        await showFormArea(); // Formular einblenden
     } else {
         // DUPLIKAT GEFUNDEN
         const typeName = isCandidateMode ? "Kandidat" : "Kontakt";
@@ -1297,28 +1470,28 @@ async function checkDuplicateInN8n(payload, testMode) {
         const forceSaveBtn = document.getElementById("btn-force-save");
         const cancelSaveBtn = document.getElementById("btn-cancel-save");
 
-        if (forceSaveBtn) forceSaveBtn.onclick = () => {
+        if (forceSaveBtn) forceSaveBtn.onclick = async () => {
             statusDiv.innerHTML = `<span style='color:orange;'>⚠️ Duplikat-Modus: Bitte Daten prüfen und anlegen.</span>`;
             
-            showFormArea(); // Formular nach "Ja" Klick einblenden
+            await showFormArea(); // Formular nach "Ja" Klick einblenden
 
-            // WICHTIG: Hier den Button wieder entsperren!
+            // Button wieder entsperren (für Kontakt)
             const saveContactButton = document.getElementById("saveContactBtn");
             if (saveContactButton) {
                saveContactButton.disabled = false;
                saveContactButton.style.opacity = "1";
                saveContactButton.dataset.ready = "1";
-
             }
         };
 
         if (cancelSaveBtn) cancelSaveBtn.onclick = () => {
+            const btnSaveContact = document.getElementById("saveContactBtn");
             if (btnSaveContact) {
-            btnSaveContact.disabled = true;
-            btnSaveContact.style.opacity = "0.5";
-            btnSaveContact.dataset.ready = "0";
+                btnSaveContact.disabled = true;
+                btnSaveContact.style.opacity = "0.5";
+                btnSaveContact.dataset.ready = "0";
             }
-            switchView(viewMenu);
+            switchView(document.getElementById("view-menu"));
             statusDiv.innerText = "";
         };
     }

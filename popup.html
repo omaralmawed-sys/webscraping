@@ -67,7 +67,28 @@
       <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
       Zurück zum Menü
     </button>
-  <div class="card hidden">
+
+    <div id="candidate-form-area" class="card hidden" style="text-align: center;">
+        <div style="margin-bottom: 20px;">
+            <img id="candidate_image_display" src="" alt="Profilbild" 
+                 style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--platform-primary); display: none; margin: 0 auto;">
+            <input type="hidden" id="candidate_image_url">
+        </div>
+
+        <div class="setting-group" style="text-align: left; margin-bottom: 10px;">
+            <label>Name des Kandidaten</label>
+            <input type="text" id="candidate_fullname" placeholder="Vollständiger Name">
+        </div>
+        
+        <div class="setting-group" style="text-align: left; margin-bottom: 10px;">
+            <label>Jobtitel</label>
+            <input type="text" id="candidate_jobtitle" placeholder="z.B. IT Manager">
+        </div>
+
+ 
+    </div>
+
+    <div id="linkedin-form-area" class="card hidden">
         <label for="resume_upload" class="drop-zone hidden" id="drop-area">
             <div class="drop-zone-content">
                 <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -84,12 +105,18 @@
             <span id="file-name-display"></span>
             <button id="removeFileBtn" style="background:none; border:none; color:#d9534f; cursor:pointer;">✖</button>
         </div>
-        <button id="saveCandidateBtn" class="main-btn hidden" style="margin-top: 15px; background-color: #026466;">
-            <span class="btn-text">Kandidat anlegen ➕</span>
-            <div class="spinner hidden"></div>
-        </button>
     </div>
-  </div>
+
+    <div class="card">
+       <button id="saveCandidateBtn" class="main-btn hidden" style="margin-top: 15px; background-color: #026466;">
+        <span class="btn-text">Kandidat anlegen ➕</span>
+        <div class="spinner hidden"></div>
+    </button>
+ </div>
+   
+   
+</div>
+
 
   <div id="view-settings" class="hidden">
     <button id="backFromSettings" class="nav-back-btn">
@@ -121,7 +148,12 @@
         <div class="spinner hidden"></div>
       </button>
     </div>
-    <div id="matchResult" class="hidden"><div id="matchOutputText"></div></div>
+
+    <div id="matchResult" class="hidden">
+      <div id="matchOutputText">
+        
+      </div>
+    </div>
   </div>
 
   <div id="view-generator" class="hidden">
@@ -151,9 +183,33 @@
       </div>
       <button id="scrapeBtn" class="main-btn">Erstellen 🚀</button>
     </div>
-    <div id="resultContainer" class="hidden">
-        <input type="text" id="outputSubject" readonly>
-        <textarea id="outputMessage" readonly></textarea>
+    
+   <div id="resultContainer" class="hidden">
+        <div class="result-group">
+          <div class="label-row">
+            <label>📧 Betreff</label>
+            <button class="copy-btn" id="copySubject" title="Betreff kopieren">Kopieren</button>
+          </div>
+          <input type="text" id="outputSubject" readonly>
+        </div>
+
+        <div class="result-group">
+          <div class="label-row">
+            <label>✉️ Nachricht</label>
+            <button class="copy-btn" id="copyMessage" title="Nachricht kopieren">Kopieren</button>
+          </div>
+          <textarea id="outputMessage" readonly></textarea>
+        </div>
+    </div>
+
+    <div id="recreateContainer" class="action-row hidden" style="margin: 0 16px 16px 16px;">
+      <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; text-align: center;">
+        💡 Nicht zufrieden? Ändere den Wunsch oben & klicke hier:
+      </p>
+      <button id="recreateBtn" class="secondary-btn">
+        <span class="btn-text">Nachricht anpassen 🔄</span>
+        <div class="spinner hidden"></div>
+      </button>
     </div>
   </div>
 

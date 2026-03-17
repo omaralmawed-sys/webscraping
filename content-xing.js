@@ -106,6 +106,7 @@ if (!window.__xingScraperListenerRegistered) {
 
         const extractedData = {
           profile: { name: "", role: "", location: "" },
+          profileImage: "", // <--- NEU: Platzhalter für das Profilbild
           recruiter: {
             name: recruiterFromIframe?.name || cachedRecruiter.name || "Recruiter",
             email: recruiterFromIframe?.email || cachedRecruiter.email || "",
@@ -130,6 +131,12 @@ if (!window.__xingScraperListenerRegistered) {
         // ---------------------------------------------------------
         // A) KOPFDATEN
         // ---------------------------------------------------------
+
+        // NEU: Profilbild URL auslesen
+        const profileImageEl = document.querySelector('div[data-wry="ProfileSummary"] img');
+        if (profileImageEl && profileImageEl.src) {
+            extractedData.profileImage = profileImageEl.src;
+        }
         const contactWidget = document.querySelector('[data-testid="contact-details-widget"]');
         if (contactWidget) {
           extractedData.profile.name = getText(contactWidget, 'b[data-wry="Text"][size="2"]', "");
